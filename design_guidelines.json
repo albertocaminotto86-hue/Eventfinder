@@ -1,0 +1,140 @@
+{
+  "project_name": "Whatsup - Italian Event Discovery",
+  "design_philosophy": {
+    "name": "Italian Neo-Pop Utility",
+    "description": "A fusion of classic Italian graphic design (bold geometry, warm earth tones) with modern, high-speed utility. It prioritizes 'decision in 30 seconds' through high contrast, clear hierarchy, and energetic visuals.",
+    "core_principles": [
+      "Speed over Decoration: Every element must aid the decision process.",
+      "Warmth over Tech: Use organic tones (Sand, Terracotta) instead of sterile grays.",
+      "Asymmetry creates Interest: Use the Bento grid to break visual monotony.",
+      "Map is Hero: The map is the primary interface; list view is secondary."
+    ]
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Clash Display, Syne, sans-serif",
+      "weights": ["600", "700"],
+      "letter_spacing": "-0.02em",
+      "usage": "Use for all section titles, event names, and impact numbers."
+    },
+    "body": {
+      "font_family": "DM Sans, Outfit, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "Use for descriptions, times, addresses, and UI labels."
+    },
+    "mono": {
+      "font_family": "JetBrains Mono, monospace",
+      "usage": "Use for distance metrics (e.g., '1.2 km') and time tags."
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": {
+        "light": "#F7F5F0",
+        "dark": "#1A1918",
+        "name": "Warm Sand / Espresso"
+      },
+      "foreground": {
+        "light": "#1A1918",
+        "dark": "#F7F5F0"
+      },
+      "primary": {
+        "default": "#FF4500",
+        "hover": "#FF6B33",
+        "name": "Electric Spritz (Orange-Red)"
+      },
+      "secondary": {
+        "default": "#FFF8E1",
+        "foreground": "#1A1918",
+        "name": "Lemon Cream"
+      },
+      "categories": {
+        "music": "#FF4500",
+        "sport": "#00A86B",
+        "art": "#0057B7",
+        "food": "#FFD700",
+        "nightlife": "#800080"
+      },
+      "functional": {
+        "success": "#00A86B",
+        "error": "#D32F2F",
+        "warning": "#FFA000"
+      }
+    },
+    "contrast_rules": "Text must meet APCA standards. Use bold weights on colored backgrounds."
+  },
+  "spacing": {
+    "scale": "Tailwind standard (p-1 to p-64)",
+    "container_padding": "px-6 md:px-12 lg:px-24",
+    "grid_gap": "gap-4 md:gap-8"
+  },
+  "layout": {
+    "mobile": {
+      "structure": "Map as full-screen background. Floating Bottom Sheet for list/details.",
+      "navigation": "Floating Pill Bar at bottom center (glassmorphism)."
+    },
+    "desktop": {
+      "structure": "Split View: Fixed Map on Right (50%), Scrollable Content on Left (50%).",
+      "grid": "Bento Grid for Event List (mix of 1x1, 2x1, and 2x2 cards)."
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "rounded-full px-8 py-3 bg-primary text-white font-bold hover:scale-105 transition-transform shadow-lg",
+      "secondary": "rounded-full px-6 py-2 border-2 border-primary/20 hover:border-primary text-primary font-medium"
+    },
+    "cards": {
+      "event": "bg-white dark:bg-zinc-900 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-black/5 overflow-hidden group",
+      "category_pill": "rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider"
+    },
+    "map_markers": {
+      "style": "Custom CSS 'Squircle' or 'Lollipop'. Do not use default blue pin.",
+      "code_snippet": "L.divIcon({ className: 'custom-marker', html: '<div class=\"marker-pin\" style=\"background-color: {color}\"></div>' })"
+    }
+  },
+  "images": {
+    "category_backgrounds": {
+      "music": "https://images.unsplash.com/photo-1768405031181-33bb016e2fbb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHwzfHxjb25jZXJ0JTIwY3Jvd2QlMjBlbmVyZ3klMjBuaWdodCUyMGxpZ2h0fGVufDB8fHx8MTc3NDEzMzExNnww&ixlib=rb-4.1.0&q=85",
+      "art": "https://images.unsplash.com/photo-1763046224157-4095b90a87cf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwzfHxhcnQlMjBnYWxsZXJ5JTIwZXhoaWJpdGlvbiUyMG1vZGVybiUyMGNvbG9yZnVsfGVufDB8fHx8MTc3NDEzMzExN3ww&ixlib=rb-4.1.0&q=85",
+      "sport": "https://images.unsplash.com/photo-1765607078219-a3891acd43b5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHw0fHxwZW9wbGUlMjBwbGF5aW5nJTIwc3BvcnRzJTIwb3V0ZG9vcnMlMjBlbmVyZ2V0aWN8ZW58MHx8fHwxNzc0MTMzMTE4fDA&ixlib=rb-4.1.0&q=85",
+      "food": "https://images.unsplash.com/photo-1773570357050-fdece406039c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwxfHxpdGFsaWFuJTIwc3RyZWV0JTIwZm9vZCUyMHZpYnJhbnQlMjBtYXJrZXR8ZW58MHx8fHwxNzc0MTMzMTIwfDA&ixlib=rb-4.1.0&q=85",
+      "nightlife": "https://images.unsplash.com/photo-1759358342214-c23ed81014bc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHw0fHxjb2NrdGFpbCUyMGJhciUyMGF0bW9zcGhlcmUlMjBuaWdodGxpZmV8ZW58MHx8fHwxNzc0MTMzMTIxfDA&ixlib=rb-4.1.0&q=85"
+    },
+    "hero_fallback": "https://images.unsplash.com/photo-1762698723009-c369a6fb9925?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHw0fHxpdGFsaWFuJTIwc3RyZWV0JTIwZm9vZCUyMHZpYnJhbnQlMjBtYXJrZXR8ZW58MHx8fHwxNzc0MTMzMTIwfDA&ixlib=rb-4.1.0&q=85"
+  },
+  "mock_data_structure": [
+    {
+      "id": 1,
+      "title": "Aperitivo al Tramonto",
+      "category": "food",
+      "lat": 41.9028,
+      "lng": 12.4964,
+      "distance": "0.5 km",
+      "date": "Today, 18:30",
+      "description": "Spritz and jazz on the rooftop.",
+      "image": "category_backgrounds.food"
+    }
+  ],
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-white/70 border border-white/20 shadow-xl",
+    "gradients": "No full gradients. Use gradients only for text clips or borders.",
+    "textures": "Add a subtle noise overlay (opacity 0.03) to the main background to reduce digital sterility."
+  },
+  "instructions_to_main_agent": [
+    "1. Setup Leaflet with 'react-leaflet'. Ensure CSS is imported.",
+    "2. Implement the 'Squircle' marker using L.divIcon and Tailwind classes.",
+    "3. Use the defined color palette strictly. Do not deviate.",
+    "4. Ensure the 'Decide in 30s' goal is met by keeping the UI minimal and text large.",
+    "5. Use the provided Unsplash URLs for mock data images.",
+    "6. Make the map view the default for mobile, and split view for desktop."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Don't make generic centered layouts.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters.",
+    "Every interaction needs micro-animations (hover, press, load).",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Use 'sonner' for toasts.",
+    "All interactive elements MUST include data-testid attributes."
+  ]
+}
