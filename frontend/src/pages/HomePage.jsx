@@ -358,7 +358,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background" data-testid="home-page">
       {/* Mobile Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-4 lg:hidden">
+      <header className="fixed top-0 left-0 right-0 px-4 pt-4 lg:hidden" style={{ zIndex: 1000 }}>
         <div className="glass rounded-2xl p-3 flex items-center justify-between">
           <h1 className="text-xl font-bold text-primary">Whatsup</h1>
           <div className="flex items-center gap-2">
@@ -608,7 +608,7 @@ export default function HomePage() {
         )}
 
         {/* Mobile Bottom Navigation */}
-        <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+        <nav className="fixed bottom-6 left-1/2 -translate-x-1/2" style={{ zIndex: 1000 }}>
           <div className="nav-pill rounded-full px-2 py-2 flex items-center gap-1">
             <button
               data-testid="view-map-button"
