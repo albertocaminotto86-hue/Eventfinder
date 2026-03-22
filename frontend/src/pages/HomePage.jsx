@@ -6,7 +6,8 @@ import { useAuth } from "@/App";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
 import { 
   Map, 
   List, 
@@ -26,9 +27,31 @@ import {
   MoreHorizontal,
   Dumbbell,
   X,
-  ChevronDown
+  ChevronDown,
+  Navigation,
+  Search,
+  Check
 } from "lucide-react";
 import { toast } from "sonner";
+
+// Italian cities with coordinates
+const ITALIAN_CITIES = [
+  { name: "Roma", lat: 41.9028, lng: 12.4964 },
+  { name: "Milano", lat: 45.4642, lng: 9.1900 },
+  { name: "Napoli", lat: 40.8518, lng: 14.2681 },
+  { name: "Torino", lat: 45.0703, lng: 7.6869 },
+  { name: "Firenze", lat: 43.7696, lng: 11.2558 },
+  { name: "Bologna", lat: 44.4949, lng: 11.3426 },
+  { name: "Venezia", lat: 45.4408, lng: 12.3155 },
+  { name: "Genova", lat: 44.4056, lng: 8.9463 },
+  { name: "Palermo", lat: 38.1157, lng: 13.3615 },
+  { name: "Bari", lat: 41.1171, lng: 16.8719 },
+  { name: "Catania", lat: 37.5079, lng: 15.0830 },
+  { name: "Verona", lat: 45.4384, lng: 10.9916 },
+  { name: "Padova", lat: 45.4064, lng: 11.8768 },
+  { name: "Trieste", lat: 45.6495, lng: 13.7768 },
+  { name: "Cagliari", lat: 39.2238, lng: 9.1217 },
+];
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -201,6 +224,102 @@ const FilterPills = ({ filters, setFilters }) => {
   );
 };
 
+// Location Picker Sheet Component
+const LocationPickerSheet = ({ open, setOpen, currentLocation, currentLocationName, onSelectLocation, onUseGPS }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [gpsLoading, setGpsLoading] = useState(false);
+  
+  const filteredCities = ITALIAN_CITIES.filter((city) =>
+    city.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleGPS = async () => {
+    setGpsLoading(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          onUseGPS([position.coords.latitude, position.coords.longitude]);
+          setGpsLoading(false);
+          setOpen(false);
+          toast.success("Posizione rilevata!");
+        },
+        (error) => {
+          console.log("Geolocation error:", error);
+          toast.error("Impossibile rilevare la posizione. Verifica i permessi.");
+          setGpsLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      toast.error("Geolocalizzazione non supportata");
+      setGpsLoading(false);
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetContent side="bottom" className="rounded-t-3xl h-[85vh]">
+        <div className="sheet-handle" />
+        <h3 className="text-xl font-bold mb-4">Scegli la tua posizione</h3>
+        
+        {/* GPS Button */}
+        <Button
+          onClick={handleGPS}
+          disabled={gpsLoading}
+          className="w-full mb-4 h-14 rounded-xl bg-primary hover:bg-primary/90"
+          data-testid="use-gps-button"
+        >
+          <Navigation className={`w-5 h-5 mr-3 ${gpsLoading ? "animate-spin" : ""}`} />
+          {gpsLoading ? "Rilevamento in corso..." : "Usa la mia posizione attuale"}
+        </Button>
+        
+        {/* Search Input */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Cerca città..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-12 rounded-xl"
+            data-testid="city-search-input"
+          />
+        </div>
+        
+        {/* Cities List */}
+        <ScrollArea className="h-[calc(85vh-220px)]">
+          <div className="space-y-2">
+            {filteredCities.map((city) => {
+              const isSelected = currentLocationName === city.name;
+              return (
+                <button
+                  key={city.name}
+                  onClick={() => {
+                    onSelectLocation([city.lat, city.lng], city.name);
+                    setOpen(false);
+                    toast.success(`Posizione impostata: ${city.name}`);
+                  }}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
+                    isSelected
+                      ? "bg-primary/10 border-2 border-primary"
+                      : "bg-muted/30 hover:bg-muted/50 border-2 border-transparent"
+                  }`}
+                  data-testid={`city-${city.name.toLowerCase()}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <MapPin className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                    <span className={`font-medium ${isSelected ? "text-primary" : ""}`}>{city.name}</span>
+                  </div>
+                  {isSelected && <Check className="w-5 h-5 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
 // Category Filter Sheet
 const CategoryFilterSheet = ({ selectedCategories, setSelectedCategories, open, setOpen }) => {
   const toggleCategory = (catId) => {
@@ -272,6 +391,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("map"); // map | list
   const [userLocation, setUserLocation] = useState(null);
+  const [locationName, setLocationName] = useState(null); // City name or "Posizione attuale"
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const [filters, setFilters] = useState({
     dateFilter: "all",
     distanceKm: null,
@@ -282,20 +403,54 @@ export default function HomePage() {
   // Default center: Rome
   const defaultCenter = [41.9028, 12.4964];
 
-  // Get user location
+  // Get user location on first load
   useEffect(() => {
-    if (navigator.geolocation) {
+    // Check if we have a saved location
+    const savedLocation = localStorage.getItem("whatsup_location");
+    const savedLocationName = localStorage.getItem("whatsup_location_name");
+    
+    if (savedLocation) {
+      const parsed = JSON.parse(savedLocation);
+      setUserLocation(parsed);
+      setLocationName(savedLocationName || "Posizione salvata");
+    } else if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation([position.coords.latitude, position.coords.longitude]);
+          const loc = [position.coords.latitude, position.coords.longitude];
+          setUserLocation(loc);
+          setLocationName("Posizione attuale");
+          localStorage.setItem("whatsup_location", JSON.stringify(loc));
+          localStorage.setItem("whatsup_location_name", "Posizione attuale");
         },
         (error) => {
           console.log("Geolocation error:", error);
-          toast.info("Geolocalizzazione non disponibile, mostrando eventi da Roma");
+          // Default to Rome
+          setUserLocation(defaultCenter);
+          setLocationName("Roma");
+          toast.info("Geolocalizzazione non disponibile. Seleziona una città.");
         }
       );
+    } else {
+      setUserLocation(defaultCenter);
+      setLocationName("Roma");
     }
   }, []);
+
+  // Handle location selection from picker
+  const handleSelectLocation = (coords, name) => {
+    setUserLocation(coords);
+    setLocationName(name);
+    localStorage.setItem("whatsup_location", JSON.stringify(coords));
+    localStorage.setItem("whatsup_location_name", name);
+  };
+
+  // Handle GPS location
+  const handleUseGPS = (coords) => {
+    setUserLocation(coords);
+    setLocationName("Posizione attuale");
+    localStorage.setItem("whatsup_location", JSON.stringify(coords));
+    localStorage.setItem("whatsup_location_name", "Posizione attuale");
+  };
 
   // Fetch events
   const fetchEvents = useCallback(async () => {
@@ -409,6 +564,22 @@ export default function HomePage() {
                 )}
               </div>
             </div>
+            
+            {/* Location Picker Button */}
+            <button
+              onClick={() => setLocationSheetOpen(true)}
+              className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-border"
+              data-testid="desktop-location-picker"
+            >
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-xs text-muted-foreground">La tua posizione</p>
+                <p className="font-medium">{locationName || "Seleziona città"}</p>
+              </div>
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            </button>
             
             <FilterPills filters={filters} setFilters={setFilters} />
             
@@ -547,7 +718,20 @@ export default function HomePage() {
             </MapContainer>
 
             {/* Mobile Filters Overlay */}
-            <div className="fixed top-20 left-4 right-4 z-40">
+            <div className="fixed top-20 left-4 right-4" style={{ zIndex: 1000 }}>
+              {/* Location Picker - Mobile */}
+              <button
+                onClick={() => setLocationSheetOpen(true)}
+                className="w-full mb-2 flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-md"
+                data-testid="mobile-location-picker"
+              >
+                <MapPin className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium flex-1 text-left truncate">
+                  {locationName || "Seleziona posizione"}
+                </span>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </button>
+              
               <FilterPills filters={filters} setFilters={setFilters} />
               <button
                 onClick={() => setCategorySheetOpen(true)}
@@ -566,6 +750,19 @@ export default function HomePage() {
         ) : (
           <div className="pt-20 pb-24 px-4">
             <div className="mb-4">
+              {/* Location Picker - List View */}
+              <button
+                onClick={() => setLocationSheetOpen(true)}
+                className="w-full mb-3 flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-sm"
+                data-testid="list-location-picker"
+              >
+                <MapPin className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium flex-1 text-left truncate">
+                  {locationName || "Seleziona posizione"}
+                </span>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </button>
+              
               <FilterPills filters={filters} setFilters={setFilters} />
               <button
                 onClick={() => setCategorySheetOpen(true)}
@@ -642,6 +839,16 @@ export default function HomePage() {
         setSelectedCategories={setSelectedCategories}
         open={categorySheetOpen}
         setOpen={setCategorySheetOpen}
+      />
+      
+      {/* Location Picker Sheet */}
+      <LocationPickerSheet
+        open={locationSheetOpen}
+        setOpen={setLocationSheetOpen}
+        currentLocation={userLocation}
+        currentLocationName={locationName}
+        onSelectLocation={handleSelectLocation}
+        onUseGPS={handleUseGPS}
       />
     </div>
   );
