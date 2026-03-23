@@ -7,6 +7,7 @@ import EventDetailPage from "@/pages/EventDetailPage";
 import ProfilePage from "@/pages/ProfilePage";
 import AuthCallback from "@/pages/AuthCallback";
 import LandingPage from "@/pages/LandingPage";
+import AdminPage from "@/pages/AdminPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -122,6 +123,7 @@ function AppRouter() {
       <Route path="/" element={<HomePage />} />
       <Route path="/landing" element={<LandingPage />} />
       <Route path="/event/:eventId" element={<EventDetailPage />} />
+      <Route path="/admin" element={<AdminPage />} />
       <Route
         path="/profile"
         element={

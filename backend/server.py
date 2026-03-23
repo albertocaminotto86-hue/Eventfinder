@@ -994,6 +994,272 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
+# ============ DISCOVERY ENDPOINTS ============
+
+# Store job status in memory (in production use Redis)
+discovery_job_status = {
+    "status": "idle",
+    "last_run": None,
+    "result": None
+}
+
+@api_router.post("/jobs/discovery/run")
+async def run_discovery_job(request: Request):
+    """Manually start a discovery run"""
+    global discovery_job_status
+    
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    cities = body.get("cities", ["Roma", "Milano"])
+    max_queries = body.get("max_queries", 5)
+    max_pages = body.get("max_pages", 10)
+    categories = body.get("categories")
+    
+    # Check if already running
+    if discovery_job_status["status"] == "running":
+        raise HTTPException(status_code=409, detail="Discovery job già in esecuzione")
+    
+    discovery_job_status["status"] = "running"
+    discovery_job_status["last_run"] = datetime.now(timezone.utc).isoformat()
+    
+    try:
+        from discovery_service import DiscoveryService
+        
+        serpapi_key = os.environ.get("SERPAPI_KEY")
+        google_maps_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+        llm_key = os.environ.get("EMERGENT_LLM_KEY")
+        
+        if not serpapi_key:
+            raise HTTPException(status_code=500, detail="SERPAPI_KEY non configurata")
+        
+        service = DiscoveryService(serpapi_key, google_maps_key, llm_key)
+        result = await service.run_discovery(
+            cities=cities,
+            max_queries=max_queries,
+            max_pages=max_pages,
+            categories=categories
+        )
+        
+        # Save discovered events to database
+        events_saved = 0
+        for event_data in result.get("events", []):
+            # Check for duplicates
+            existing = await db.discovered_events.find_one(
+                {"dedup_hash": event_data["dedup_hash"]},
+                {"_id": 0}
+            )
+            
+            if not existing:
+                event_data["created_at"] = datetime.now(timezone.utc).isoformat()
+                await db.discovered_events.insert_one(event_data)
+                events_saved += 1
+        
+        result["events_saved_to_db"] = events_saved
+        discovery_job_status["status"] = "completed"
+        
+        # Clean result for JSON serialization
+        clean_result = {
+            "started_at": result.get("started_at"),
+            "completed_at": result.get("completed_at"),
+            "cities": result.get("cities", []),
+            "total_queries": result.get("total_queries", 0),
+            "total_pages_fetched": result.get("total_pages_fetched", 0),
+            "events_discovered": result.get("events_discovered", 0),
+            "events_published": result.get("events_published", 0),
+            "events_review": result.get("events_review", 0),
+            "events_discarded": result.get("events_discarded", 0),
+            "events_saved_to_db": events_saved,
+            "errors": result.get("errors", [])
+        }
+        discovery_job_status["result"] = clean_result
+        
+        return clean_result
+        
+    except Exception as e:
+        logger.error(f"Discovery job error: {e}")
+        discovery_job_status["status"] = "failed"
+        discovery_job_status["result"] = {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/jobs/discovery/status")
+async def get_discovery_status():
+    """Get the status of the last discovery job"""
+    return discovery_job_status
+
+@api_router.get("/discovery/review-queue")
+async def get_review_queue(city: Optional[str] = None, category: Optional[str] = None, limit: int = 50):
+    """Get events waiting for manual review"""
+    query = {"status": "review"}
+    
+    if city:
+        query["citta"] = city
+    if category:
+        query["categoria"] = category
+    
+    events = await db.discovered_events.find(query, {"_id": 0}).limit(limit).to_list(limit)
+    return {"events": events, "count": len(events)}
+
+@api_router.get("/discovery/events")
+async def get_discovered_events(
+    status: Optional[str] = None,
+    city: Optional[str] = None,
+    limit: int = 50
+):
+    """Get all discovered events"""
+    query = {}
+    if status:
+        query["status"] = status
+    if city:
+        query["citta"] = city
+    
+    events = await db.discovered_events.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    return {"events": events, "count": len(events)}
+
+@api_router.patch("/discovery/events/{dedup_hash}/approve")
+async def approve_event(dedup_hash: str):
+    """Approve and publish an event from review queue"""
+    # Get the discovered event
+    discovered = await db.discovered_events.find_one(
+        {"dedup_hash": dedup_hash},
+        {"_id": 0}
+    )
+    
+    if not discovered:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    
+    # Update status
+    await db.discovered_events.update_one(
+        {"dedup_hash": dedup_hash},
+        {"$set": {"status": "published"}}
+    )
+    
+    # Create event in main events collection
+    if discovered.get("titolo") and discovered.get("data_iso"):
+        # Parse date
+        try:
+            event_date = datetime.fromisoformat(discovered["data_iso"])
+        except:
+            event_date = datetime.now(timezone.utc)
+        
+        # Add time if available
+        if discovered.get("ora_inizio"):
+            try:
+                time_parts = discovered["ora_inizio"].split(":")
+                event_date = event_date.replace(
+                    hour=int(time_parts[0]),
+                    minute=int(time_parts[1]) if len(time_parts) > 1 else 0
+                )
+            except:
+                pass
+        
+        new_event = {
+            "event_id": f"evt_{uuid.uuid4().hex[:12]}",
+            "title": discovered["titolo"],
+            "description": discovered.get("descrizione_breve", ""),
+            "ai_description": discovered.get("descrizione_breve"),
+            "category": discovered.get("categoria", "altro"),
+            "lat": discovered.get("lat") or 41.9028,  # Default to Rome
+            "lng": discovered.get("lng") or 12.4964,
+            "address": discovered.get("indirizzo") or discovered.get("luogo_nome") or "",
+            "city": discovered.get("citta", ""),
+            "date": event_date.isoformat(),
+            "price": 0.0,
+            "is_free": not discovered.get("prezzo"),
+            "source": discovered.get("source_platform", "discovery"),
+            "source_url": discovered.get("source_url"),
+            "image_url": discovered.get("image_url"),
+            "participants_count": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.events.insert_one(new_event)
+    
+    return {"message": "Evento approvato e pubblicato", "dedup_hash": dedup_hash}
+
+@api_router.patch("/discovery/events/{dedup_hash}/discard")
+async def discard_event(dedup_hash: str):
+    """Discard an event from review queue"""
+    result = await db.discovered_events.update_one(
+        {"dedup_hash": dedup_hash},
+        {"$set": {"status": "discarded"}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    
+    return {"message": "Evento scartato", "dedup_hash": dedup_hash}
+
+@api_router.get("/discovery/dedup-check")
+async def check_duplicate(title: str, date: str, city: str):
+    """Check if a similar event already exists"""
+    import hashlib
+    import re
+    
+    # Generate hash
+    normalized_title = re.sub(r'[^\w\s]', '', title.lower())
+    normalized_title = " ".join(normalized_title.split())
+    hash_input = f"{normalized_title}|{date}|{city.lower()}"
+    dedup_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
+    
+    existing = await db.discovered_events.find_one(
+        {"dedup_hash": dedup_hash},
+        {"_id": 0}
+    )
+    
+    return {
+        "exists": existing is not None,
+        "dedup_hash": dedup_hash,
+        "existing_event": existing
+    }
+
+# ============ ADMIN ENDPOINTS ============
+
+@api_router.get("/admin/stats")
+async def get_admin_stats():
+    """Get admin dashboard statistics"""
+    total_events = await db.events.count_documents({})
+    discovered_total = await db.discovered_events.count_documents({})
+    discovered_published = await db.discovered_events.count_documents({"status": "published"})
+    discovered_review = await db.discovered_events.count_documents({"status": "review"})
+    discovered_discarded = await db.discovered_events.count_documents({"status": "discarded"})
+    total_users = await db.users.count_documents({})
+    total_rsvps = await db.rsvps.count_documents({"status": "confirmed"})
+    
+    # Get events by city
+    pipeline = [
+        {"$group": {"_id": "$city", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]
+    events_by_city = await db.events.aggregate(pipeline).to_list(10)
+    
+    # Get discovered events by city
+    discovered_by_city = await db.discovered_events.aggregate(pipeline).to_list(10)
+    
+    return {
+        "total_events": total_events,
+        "discovered": {
+            "total": discovered_total,
+            "published": discovered_published,
+            "review": discovered_review,
+            "discarded": discovered_discarded
+        },
+        "total_users": total_users,
+        "total_rsvps": total_rsvps,
+        "events_by_city": events_by_city,
+        "discovered_by_city": discovered_by_city,
+        "last_discovery_job": discovery_job_status
+    }
+
+@api_router.get("/admin/cities")
+async def get_configured_cities():
+    """Get list of configured cities for discovery"""
+    from discovery_service import ITALIAN_CITIES, VENUE_WHITELIST
+    
+    return {
+        "cities": ITALIAN_CITIES,
+        "venue_whitelist": VENUE_WHITELIST
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 

@@ -152,6 +152,39 @@ class WhatsupAPITester:
         
         return all(results)
 
+    def test_admin_stats(self):
+        """Test admin stats endpoint"""
+        return self.run_test("Admin Stats", "GET", "admin/stats", 200)
+
+    def test_admin_cities(self):
+        """Test admin cities endpoint"""
+        return self.run_test("Admin Cities", "GET", "admin/cities", 200)
+
+    def test_discovery_status(self):
+        """Test discovery job status endpoint"""
+        return self.run_test("Discovery Status", "GET", "jobs/discovery/status", 200)
+
+    def test_discovery_review_queue(self):
+        """Test discovery review queue endpoint"""
+        return self.run_test("Discovery Review Queue", "GET", "discovery/review-queue", 200)
+
+    def test_discovery_events(self):
+        """Test discovery events endpoint"""
+        return self.run_test("Discovery Events", "GET", "discovery/events", 200)
+
+    def test_discovery_run_job(self):
+        """Test running discovery job"""
+        data = {
+            "cities": ["Roma"],
+            "max_queries": 2,
+            "max_pages": 3
+        }
+        return self.run_test("Run Discovery Job", "POST", "jobs/discovery/run", 200, data=data)
+
+    def test_discovery_dedup_check(self):
+        """Test deduplication check endpoint"""
+        return self.run_test("Dedup Check", "GET", "discovery/dedup-check?title=Test Event&date=2024-01-01&city=Roma", 200)
+
 def main():
     print("🚀 Starting Whatsup API Testing...")
     print("=" * 50)
@@ -182,6 +215,23 @@ def main():
     tester.test_auth_endpoints_without_token()
     tester.test_rsvp_without_auth()
     tester.test_save_event_without_auth()
+    
+    # Test admin endpoints
+    print("\n👑 Testing Admin Endpoints...")
+    tester.test_admin_stats()
+    tester.test_admin_cities()
+    
+    # Test discovery endpoints
+    print("\n🔍 Testing Discovery Endpoints...")
+    tester.test_discovery_status()
+    tester.test_discovery_review_queue()
+    tester.test_discovery_events()
+    tester.test_discovery_dedup_check()
+    
+    # Test discovery job (this might take longer)
+    print("\n🚀 Testing Discovery Job...")
+    print("   Note: This test may take 30-60 seconds due to AI processing...")
+    tester.test_discovery_run_job()
     
     # Print results
     print("\n" + "=" * 50)
