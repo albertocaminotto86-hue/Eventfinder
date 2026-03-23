@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { 
   Map, 
@@ -32,7 +31,9 @@ import {
   Navigation,
   Search,
   Check,
-  Settings
+  Settings,
+  Crosshair,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -226,102 +227,138 @@ const FilterPills = ({ filters, setFilters }) => {
   );
 };
 
-// Location Picker using Drawer (better mobile support)
-const LocationPickerSheet = ({ open, setOpen, currentLocation, currentLocationName, onSelectLocation, onUseGPS }) => {
+// Location Search with Autocomplete (Google Maps style)
+const LocationSearchBar = ({ locationName, onSelectLocation, onUseGPS }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
   
-  const filteredCities = ITALIAN_CITIES.filter((city) =>
-    city.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCities = searchQuery.length > 0 
+    ? ITALIAN_CITIES.filter((city) =>
+        city.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : ITALIAN_CITIES;
 
-  const handleGPS = async () => {
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+          inputRef.current && !inputRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
+
+  const handleGPS = () => {
     setGpsLoading(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           onUseGPS([position.coords.latitude, position.coords.longitude]);
           setGpsLoading(false);
-          setOpen(false);
           toast.success("Posizione rilevata!");
         },
         (error) => {
           console.log("Geolocation error:", error);
-          toast.error("Impossibile rilevare la posizione. Verifica i permessi.");
+          toast.error("Attiva i servizi di localizzazione: macOS System Preferences → Privacy & Security → Location Services");
           setGpsLoading(false);
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
     } else {
-      toast.error("Geolocalizzazione non supportata");
+      toast.error("Geolocalizzazione non supportata dal browser");
       setGpsLoading(false);
     }
   };
 
+  const handleSelectCity = (city) => {
+    onSelectLocation([city.lat, city.lng], city.name);
+    setSearchQuery("");
+    setShowDropdown(false);
+    toast.success(`📍 ${city.name}`);
+  };
+
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerContent className="max-h-[85vh]">
-        <DrawerHeader>
-          <DrawerTitle>Scegli la tua posizione</DrawerTitle>
-        </DrawerHeader>
-        
-        <div className="px-4 pb-6">
-          {/* GPS Button */}
-          <Button
-            onClick={handleGPS}
-            disabled={gpsLoading}
-            className="w-full mb-4 h-14 rounded-xl bg-primary hover:bg-primary/90"
-            data-testid="use-gps-button"
-          >
-            <Navigation className={`w-5 h-5 mr-3 ${gpsLoading ? "animate-spin" : ""}`} />
-            {gpsLoading ? "Rilevamento in corso..." : "Usa la mia posizione attuale"}
-          </Button>
-          
-          {/* Search Input */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              placeholder="Cerca città..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 rounded-xl"
-              data-testid="city-search-input"
-            />
-          </div>
-          
-          {/* Cities List */}
-          <ScrollArea className="h-[45vh]">
-            <div className="space-y-2">
-              {filteredCities.map((city) => {
-                const isSelected = currentLocationName === city.name;
-                return (
-                  <button
-                    key={city.name}
-                    onClick={() => {
-                      onSelectLocation([city.lat, city.lng], city.name);
-                      setOpen(false);
-                      toast.success(`Posizione impostata: ${city.name}`);
-                    }}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
-                      isSelected
-                        ? "bg-primary/10 border-2 border-primary"
-                        : "bg-muted/30 hover:bg-muted/50 border-2 border-transparent"
-                    }`}
-                    data-testid={`city-${city.name.toLowerCase()}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <MapPin className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className={`font-medium ${isSelected ? "text-primary" : ""}`}>{city.name}</span>
-                    </div>
-                    {isSelected && <Check className="w-5 h-5 text-primary" />}
-                  </button>
-                );
-              })}
-            </div>
-          </ScrollArea>
+    <div className="flex gap-2 items-center w-full">
+      {/* GPS Button */}
+      <button
+        onClick={handleGPS}
+        disabled={gpsLoading}
+        className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary text-white flex items-center justify-center shadow-md hover:bg-primary/90 transition-all disabled:opacity-50"
+        data-testid="gps-button"
+        title="Usa la mia posizione"
+      >
+        {gpsLoading ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : (
+          <Crosshair className="w-5 h-5" />
+        )}
+      </button>
+      
+      {/* Search Input */}
+      <div className="relative flex-1">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder={locationName || "Cerca città..."}
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+            className="w-full h-11 pl-9 pr-4 rounded-xl bg-white shadow-md border-0 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50"
+            data-testid="city-search-input"
+          />
+          {locationName && !searchQuery && (
+            <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm font-medium text-foreground pointer-events-none">
+              {locationName}
+            </span>
+          )}
         </div>
-      </DrawerContent>
-    </Drawer>
+        
+        {/* Dropdown */}
+        {showDropdown && (
+          <div 
+            ref={dropdownRef}
+            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-border max-h-64 overflow-y-auto"
+            style={{ zIndex: 9999 }}
+          >
+            {filteredCities.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                Nessuna città trovata
+              </div>
+            ) : (
+              filteredCities.map((city) => (
+                <button
+                  key={city.name}
+                  onClick={() => handleSelectCity(city)}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleSelectCity(city);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left border-b border-border/50 last:border-b-0"
+                  data-testid={`city-option-${city.name.toLowerCase()}`}
+                >
+                  <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                  <span className="font-medium">{city.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -397,7 +434,6 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState("map"); // map | list
   const [userLocation, setUserLocation] = useState(null);
   const [locationName, setLocationName] = useState(null); // City name or "Posizione attuale"
-  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const [filters, setFilters] = useState({
     dateFilter: "all",
     distanceKm: null,
@@ -554,153 +590,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Desktop Layout */}
-      <div className="hidden lg:flex">
-        {/* Left Panel - Event List */}
-        <div className="split-view-left bg-background border-r">
-          <div className="p-6 sticky top-0 bg-background z-10">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-3xl font-bold text-primary">Whatsup</h1>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate("/admin")}
-                  data-testid="admin-button-desktop"
-                  className="text-muted-foreground"
-                >
-                  <Settings className="w-5 h-5" />
-                </Button>
-                {user ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/profile")}
-                    data-testid="desktop-profile-button"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Profilo
-                  </Button>
-                ) : (
-                  <Button onClick={login} data-testid="desktop-login-button">
-                    Accedi con Google
-                  </Button>
-                )}
-              </div>
-            </div>
-            
-            {/* Location Picker Button */}
-            <button
-              onClick={() => setLocationSheetOpen(true)}
-              className="w-full mb-4 flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-border"
-              data-testid="desktop-location-picker"
-            >
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-xs text-muted-foreground">La tua posizione</p>
-                <p className="font-medium">{locationName || "Seleziona città"}</p>
-              </div>
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
-            </button>
-            
-            <FilterPills filters={filters} setFilters={setFilters} />
-            
-            <button
-              onClick={() => setCategorySheetOpen(true)}
-              className="mt-4 flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm hover:shadow-md transition-all"
-              data-testid="open-category-filter"
-            >
-              <Filter className="w-4 h-4" />
-              <span className="text-sm font-medium">
-                {selectedCategories.length > 0
-                  ? `${selectedCategories.length} categorie`
-                  : "Tutte le categorie"}
-              </span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
-
-          <ScrollArea className="h-[calc(100vh-220px)] px-6 pb-6">
-            {loading ? (
-              <div className="grid grid-cols-1 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-64 rounded-2xl skeleton" />
-                ))}
-              </div>
-            ) : events.length === 0 ? (
-              <div className="text-center py-12">
-                <MapPin className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Nessun evento trovato</p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => {
-                    setFilters({ dateFilter: "all", distanceKm: null });
-                    setSelectedCategories([]);
-                  }}
-                >
-                  Rimuovi filtri
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {events.map((event, idx) => (
-                  <div
-                    key={`${event.event_id}-${idx}`}
-                    className={`animate-fade-in-up stagger-${(idx % 5) + 1}`}
-                  >
-                    <EventCard event={event} onClick={handleEventClick} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </div>
-
-        {/* Right Panel - Map */}
-        <div className="split-view-right">
-          <MapContainer
-            center={mapCenter}
-            zoom={13}
-            className="h-full w-full"
-            zoomControl={false}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <MapCenterUpdater center={mapCenter} />
-            {events.map((event, idx) => (
-              <Marker
-                key={`desktop-marker-${event.event_id}-${idx}`}
-                position={[event.lat, event.lng]}
-                icon={createMarkerIcon(event.category)}
-                eventHandlers={{
-                  click: () => handleEventClick(event),
-                }}
-              >
-                <Popup>
-                  <div className="p-2 min-w-[200px]">
-                    <h4 className="font-bold text-sm mb-1">{event.title}</h4>
-                    <p className="text-xs text-muted-foreground mb-2">{event.city}</p>
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      onClick={() => handleEventClick(event)}
-                    >
-                      Dettagli
-                    </Button>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </div>
-      </div>
-
       {/* Mobile Layout */}
-      <div className="lg:hidden">
+      <div>
         {viewMode === "map" ? (
           <div className="h-screen relative">
             <MapContainer
@@ -745,23 +636,14 @@ export default function HomePage() {
               className="fixed top-20 left-4 right-4" 
               style={{ zIndex: 1100 }}
             >
-              {/* Location Picker - Mobile */}
-              <button
-                onClick={() => setLocationSheetOpen(true)}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                  setLocationSheetOpen(true);
-                }}
-                className="w-full mb-2 flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-md cursor-pointer"
-                data-testid="mobile-location-picker"
-                type="button"
-              >
-                <MapPin className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium flex-1 text-left truncate">
-                  {locationName || "Seleziona posizione"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              </button>
+              {/* Location Search Bar */}
+              <div className="mb-3">
+                <LocationSearchBar
+                  locationName={locationName}
+                  onSelectLocation={handleSelectLocation}
+                  onUseGPS={handleUseGPS}
+                />
+              </div>
               
               <FilterPills filters={filters} setFilters={setFilters} />
               <button
@@ -781,18 +663,14 @@ export default function HomePage() {
         ) : (
           <div className="pt-20 pb-24 px-4">
             <div className="mb-4">
-              {/* Location Picker - List View */}
-              <button
-                onClick={() => setLocationSheetOpen(true)}
-                className="w-full mb-3 flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-sm"
-                data-testid="list-location-picker"
-              >
-                <MapPin className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium flex-1 text-left truncate">
-                  {locationName || "Seleziona posizione"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              </button>
+              {/* Location Search Bar - List View */}
+              <div className="mb-3">
+                <LocationSearchBar
+                  locationName={locationName}
+                  onSelectLocation={handleSelectLocation}
+                  onUseGPS={handleUseGPS}
+                />
+              </div>
               
               <FilterPills filters={filters} setFilters={setFilters} />
               <button
@@ -870,16 +748,6 @@ export default function HomePage() {
         setSelectedCategories={setSelectedCategories}
         open={categorySheetOpen}
         setOpen={setCategorySheetOpen}
-      />
-      
-      {/* Location Picker Sheet */}
-      <LocationPickerSheet
-        open={locationSheetOpen}
-        setOpen={setLocationSheetOpen}
-        currentLocation={userLocation}
-        currentLocationName={locationName}
-        onSelectLocation={handleSelectLocation}
-        onUseGPS={handleUseGPS}
       />
     </div>
   );
