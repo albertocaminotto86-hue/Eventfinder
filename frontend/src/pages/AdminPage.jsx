@@ -398,7 +398,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background" data-testid="admin-page">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b">
-        <div className="flex items-center justify-between p-4 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 max-w-7xl mx-auto gap-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/")}
@@ -409,13 +409,13 @@ export default function AdminPage() {
             </button>
             <div>
               <h1 className="font-bold text-xl">Admin Panel</h1>
-              <p className="text-sm text-muted-foreground">Gestione eventi e discovery</p>
+              <p className="text-sm text-muted-foreground hidden sm:block">Gestione eventi e discovery</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Select value={selectedCity} onValueChange={setSelectedCity}>
-              <SelectTrigger className="w-40" data-testid="city-select">
+              <SelectTrigger className="w-32 sm:w-40" data-testid="city-select">
                 <SelectValue placeholder="Città" />
               </SelectTrigger>
               <SelectContent>
@@ -430,16 +430,18 @@ export default function AdminPage() {
               onClick={runDiscoveryJob}
               disabled={jobRunning}
               data-testid="run-discovery-button"
+              className="flex-shrink-0"
             >
               {jobRunning ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  In corso...
+                  <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                  <span className="hidden sm:inline">In corso...</span>
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Avvia Discovery
+                  <Play className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Avvia Discovery</span>
+                  <span className="sm:hidden">Avvia</span>
                 </>
               )}
             </Button>
