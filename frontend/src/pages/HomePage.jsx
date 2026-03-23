@@ -624,7 +624,7 @@ export default function HomePage() {
               <div className="grid grid-cols-1 gap-4">
                 {events.map((event, idx) => (
                   <div
-                    key={event.event_id}
+                    key={`${event.event_id}-${idx}`}
                     className={`animate-fade-in-up stagger-${(idx % 5) + 1}`}
                   >
                     <EventCard event={event} onClick={handleEventClick} />
@@ -793,7 +793,7 @@ export default function HomePage() {
               <div className="space-y-4">
                 {events.map((event, idx) => (
                   <div
-                    key={event.event_id}
+                    key={`mobile-${event.event_id}-${idx}`}
                     className={`animate-fade-in-up stagger-${(idx % 5) + 1}`}
                   >
                     <EventCard event={event} onClick={handleEventClick} />

@@ -90,3 +90,42 @@
 - Tempo dal lancio all'evento scelto: target < 30 secondi
 - Tap per vedere mappa: target 1
 - Retention D7: target > 30%
+
+---
+
+## Update: Google Proxy Event Discovery (Jan 2026)
+
+### Feature Overview
+Sistema automatico di discovery eventi che usa Google Search come proxy per trovare contenuti pubblici da Instagram e Facebook.
+
+### Architecture (4 Layers)
+1. **Query Builder**: Costruisce query Google per città e categorie
+2. **Fetch & Parse**: Estrae contenuti da URL (SerpAPI + scraping HTML)
+3. **AI Extraction**: Claude Sonnet 4.5 per estrarre dati strutturati
+4. **Validation & Geocoding**: Google Maps API per coordinate + deduplicazione
+
+### New APIs
+- `POST /api/jobs/discovery/run` - Avvia discovery job
+- `GET /api/jobs/discovery/status` - Status ultimo job
+- `GET /api/discovery/review-queue` - Eventi in revisione
+- `GET /api/discovery/events` - Tutti gli eventi scoperti
+- `PATCH /api/discovery/events/{hash}/approve` - Approva evento
+- `PATCH /api/discovery/events/{hash}/discard` - Scarta evento
+- `GET /api/admin/stats` - Statistiche admin
+
+### Admin Panel (/admin)
+- Dashboard con statistiche
+- Coda revisione con confidenza scores
+- Lista eventi scoperti
+- Filtri per città
+- Pulsante "Avvia Discovery"
+
+### Confidence Logic
+- `confidence >= 0.8`: Pubblicazione automatica
+- `confidence < 0.8`: Va in review queue
+- Senza data rilevabile: Scartato
+
+### Dependencies Added
+- SerpAPI (Google Search)
+- Google Maps Geocoding API
+- beautifulsoup4 (HTML parsing)
