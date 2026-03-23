@@ -737,10 +737,13 @@ export default function HomePage() {
             </MapContainer>
 
             {/* Mobile Filters Overlay */}
-            <div className="fixed top-20 left-4 right-4" style={{ zIndex: 1000 }}>
+            <div className="fixed top-20 left-4 right-4" style={{ zIndex: 1100, pointerEvents: "auto" }}>
               {/* Location Picker - Mobile */}
               <button
-                onClick={() => setLocationSheetOpen(true)}
+                onClick={() => {
+                  console.log("Location picker clicked!");
+                  setLocationSheetOpen(true);
+                }}
                 className="w-full mb-2 flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-md"
                 data-testid="mobile-location-picker"
               >
