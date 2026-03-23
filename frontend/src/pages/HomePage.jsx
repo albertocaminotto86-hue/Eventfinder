@@ -30,7 +30,8 @@ import {
   ChevronDown,
   Navigation,
   Search,
-  Check
+  Check,
+  Settings
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -516,7 +517,16 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 px-4 pt-4 lg:hidden" style={{ zIndex: 1000 }}>
         <div className="glass rounded-2xl p-3 flex items-center justify-between">
           <h1 className="text-xl font-bold text-primary">Whatsup</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/admin")}
+              data-testid="admin-button-mobile"
+              className="text-muted-foreground"
+            >
+              <Settings className="w-5 h-5" />
+            </Button>
             {user ? (
               <Button
                 variant="ghost"
@@ -548,6 +558,15 @@ export default function HomePage() {
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-3xl font-bold text-primary">Whatsup</h1>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/admin")}
+                  data-testid="admin-button-desktop"
+                  className="text-muted-foreground"
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
                 {user ? (
                   <Button
                     variant="outline"
