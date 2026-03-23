@@ -253,6 +253,32 @@
     width: 100%;
 }
 
+/* Force Leaflet below overlays */
+.leaflet-pane {
+    z-index: 400 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+    z-index: 500 !important;
+}
+
+.leaflet-control {
+    z-index: 500 !important;
+}
+
+/* Prevent map from capturing clicks on overlays */
+.leaflet-container {
+    pointer-events: auto;
+}
+
+/* Filters overlay must be above map */
+.filters-overlay {
+    z-index: 1000 !important;
+    pointer-events: auto !important;
+    position: relative;
+}
+
 @media (min-width: 1024px) {
     .map-container {
         height: 100vh;

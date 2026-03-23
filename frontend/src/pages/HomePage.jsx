@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { 
   Map, 
@@ -225,7 +226,7 @@ const FilterPills = ({ filters, setFilters }) => {
   );
 };
 
-// Location Picker Sheet Component
+// Location Picker using Drawer (better mobile support)
 const LocationPickerSheet = ({ open, setOpen, currentLocation, currentLocationName, onSelectLocation, onUseGPS }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -258,66 +259,69 @@ const LocationPickerSheet = ({ open, setOpen, currentLocation, currentLocationNa
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent side="bottom" className="rounded-t-3xl h-[85vh]">
-        <div className="sheet-handle" />
-        <h3 className="text-xl font-bold mb-4">Scegli la tua posizione</h3>
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerContent className="max-h-[85vh]">
+        <DrawerHeader>
+          <DrawerTitle>Scegli la tua posizione</DrawerTitle>
+        </DrawerHeader>
         
-        {/* GPS Button */}
-        <Button
-          onClick={handleGPS}
-          disabled={gpsLoading}
-          className="w-full mb-4 h-14 rounded-xl bg-primary hover:bg-primary/90"
-          data-testid="use-gps-button"
-        >
-          <Navigation className={`w-5 h-5 mr-3 ${gpsLoading ? "animate-spin" : ""}`} />
-          {gpsLoading ? "Rilevamento in corso..." : "Usa la mia posizione attuale"}
-        </Button>
-        
-        {/* Search Input */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input
-            placeholder="Cerca città..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 rounded-xl"
-            data-testid="city-search-input"
-          />
-        </div>
-        
-        {/* Cities List */}
-        <ScrollArea className="h-[calc(85vh-220px)]">
-          <div className="space-y-2">
-            {filteredCities.map((city) => {
-              const isSelected = currentLocationName === city.name;
-              return (
-                <button
-                  key={city.name}
-                  onClick={() => {
-                    onSelectLocation([city.lat, city.lng], city.name);
-                    setOpen(false);
-                    toast.success(`Posizione impostata: ${city.name}`);
-                  }}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
-                    isSelected
-                      ? "bg-primary/10 border-2 border-primary"
-                      : "bg-muted/30 hover:bg-muted/50 border-2 border-transparent"
-                  }`}
-                  data-testid={`city-${city.name.toLowerCase()}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <MapPin className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
-                    <span className={`font-medium ${isSelected ? "text-primary" : ""}`}>{city.name}</span>
-                  </div>
-                  {isSelected && <Check className="w-5 h-5 text-primary" />}
-                </button>
-              );
-            })}
+        <div className="px-4 pb-6">
+          {/* GPS Button */}
+          <Button
+            onClick={handleGPS}
+            disabled={gpsLoading}
+            className="w-full mb-4 h-14 rounded-xl bg-primary hover:bg-primary/90"
+            data-testid="use-gps-button"
+          >
+            <Navigation className={`w-5 h-5 mr-3 ${gpsLoading ? "animate-spin" : ""}`} />
+            {gpsLoading ? "Rilevamento in corso..." : "Usa la mia posizione attuale"}
+          </Button>
+          
+          {/* Search Input */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              placeholder="Cerca città..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-12 rounded-xl"
+              data-testid="city-search-input"
+            />
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+          
+          {/* Cities List */}
+          <ScrollArea className="h-[45vh]">
+            <div className="space-y-2">
+              {filteredCities.map((city) => {
+                const isSelected = currentLocationName === city.name;
+                return (
+                  <button
+                    key={city.name}
+                    onClick={() => {
+                      onSelectLocation([city.lat, city.lng], city.name);
+                      setOpen(false);
+                      toast.success(`Posizione impostata: ${city.name}`);
+                    }}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
+                      isSelected
+                        ? "bg-primary/10 border-2 border-primary"
+                        : "bg-muted/30 hover:bg-muted/50 border-2 border-transparent"
+                    }`}
+                    data-testid={`city-${city.name.toLowerCase()}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <MapPin className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className={`font-medium ${isSelected ? "text-primary" : ""}`}>{city.name}</span>
+                    </div>
+                    {isSelected && <Check className="w-5 h-5 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
@@ -667,9 +671,9 @@ export default function HomePage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <MapCenterUpdater center={mapCenter} />
-            {events.map((event) => (
+            {events.map((event, idx) => (
               <Marker
-                key={event.event_id}
+                key={`desktop-marker-${event.event_id}-${idx}`}
                 position={[event.lat, event.lng]}
                 icon={createMarkerIcon(event.category)}
                 eventHandlers={{
@@ -698,7 +702,7 @@ export default function HomePage() {
       {/* Mobile Layout */}
       <div className="lg:hidden">
         {viewMode === "map" ? (
-          <div className="h-screen">
+          <div className="h-screen relative">
             <MapContainer
               center={mapCenter}
               zoom={13}
@@ -710,9 +714,9 @@ export default function HomePage() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <MapCenterUpdater center={mapCenter} />
-              {events.map((event) => (
+              {events.map((event, idx) => (
                 <Marker
-                  key={event.event_id}
+                  key={`marker-${event.event_id}-${idx}`}
                   position={[event.lat, event.lng]}
                   icon={createMarkerIcon(event.category)}
                   eventHandlers={{
@@ -737,15 +741,20 @@ export default function HomePage() {
             </MapContainer>
 
             {/* Mobile Filters Overlay */}
-            <div className="fixed top-20 left-4 right-4" style={{ zIndex: 1100, pointerEvents: "auto" }}>
+            <div 
+              className="fixed top-20 left-4 right-4" 
+              style={{ zIndex: 1100 }}
+            >
               {/* Location Picker - Mobile */}
               <button
-                onClick={() => {
-                  console.log("Location picker clicked!");
+                onClick={() => setLocationSheetOpen(true)}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
                   setLocationSheetOpen(true);
                 }}
-                className="w-full mb-2 flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-md"
+                className="w-full mb-2 flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-md cursor-pointer"
                 data-testid="mobile-location-picker"
+                type="button"
               >
                 <MapPin className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium flex-1 text-left truncate">
