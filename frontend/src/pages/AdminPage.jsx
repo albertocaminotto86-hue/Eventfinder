@@ -28,7 +28,8 @@ import {
   TrendingUp,
   Users,
   Map,
-  Loader2
+  Loader2,
+  Crosshair
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -231,6 +232,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [jobRunning, setJobRunning] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const [selectedCity, setSelectedCity] = useState("all");
   const [cities, setCities] = useState([]);
 
@@ -342,6 +344,61 @@ export default function AdminPage() {
     }
   };
 
+  // Run discovery from GPS location
+  const runGPSDiscovery = () => {
+    setGpsLoading(true);
+    
+    if (!navigator.geolocation) {
+      toast.error("Geolocalizzazione non supportata");
+      setGpsLoading(false);
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        toast.info(`Scanning eventi vicino a te...`);
+        
+        try {
+          const response = await fetch(`${API}/jobs/discovery/run`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: lat,
+              lng: lng,
+              max_queries: 5,
+              max_pages: 10
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            toast.success(`Trovati ${result.events_discovered} eventi nella tua zona!`);
+            await fetchStats();
+            await fetchReviewQueue();
+            await fetchDiscoveredEvents();
+          } else {
+            const error = await response.json();
+            toast.error(error.detail || "Errore durante la discovery");
+          }
+        } catch (error) {
+          console.error("GPS Discovery error:", error);
+          toast.error("Errore di connessione");
+        } finally {
+          setGpsLoading(false);
+        }
+      },
+      (error) => {
+        console.log("Geolocation error:", error);
+        toast.error("Attiva i servizi di localizzazione nelle impostazioni del sistema");
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   // Approve event
   const approveEvent = async (dedupHash) => {
     setActionLoading(true);
@@ -426,9 +483,26 @@ export default function AdminPage() {
               </SelectContent>
             </Select>
             
+            {/* GPS Discovery Button */}
+            <Button
+              onClick={runGPSDiscovery}
+              disabled={gpsLoading || jobRunning}
+              variant="outline"
+              size="icon"
+              className="flex-shrink-0"
+              data-testid="gps-discovery-button"
+              title="Discovery dalla posizione attuale"
+            >
+              {gpsLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Crosshair className="w-4 h-4" />
+              )}
+            </Button>
+            
             <Button
               onClick={runDiscoveryJob}
-              disabled={jobRunning}
+              disabled={jobRunning || gpsLoading}
               data-testid="run-discovery-button"
               className="flex-shrink-0"
             >

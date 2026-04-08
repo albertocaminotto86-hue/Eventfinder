@@ -180,10 +180,10 @@ const FilterPills = ({ filters, setFilters }) => {
   ];
 
   const distanceOptions = [
-    { value: null, label: "Ovunque" },
     { value: 2, label: "2 km" },
     { value: 5, label: "5 km" },
     { value: 10, label: "10 km" },
+    { value: 50, label: "50 km" },
   ];
 
   return (
@@ -210,8 +210,8 @@ const FilterPills = ({ filters, setFilters }) => {
       <div className="flex gap-1 p-1 bg-white/80 backdrop-blur-sm rounded-full shadow-sm">
         {distanceOptions.map((opt) => (
           <button
-            key={opt.value ?? "null"}
-            data-testid={`filter-distance-${opt.value ?? "all"}`}
+            key={opt.value}
+            data-testid={`filter-distance-${opt.value}`}
             onClick={() => setFilters({ ...filters, distanceKm: opt.value })}
             className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all ${
               filters.distanceKm === opt.value
@@ -436,7 +436,7 @@ export default function HomePage() {
   const [locationName, setLocationName] = useState(null); // City name or "Posizione attuale"
   const [filters, setFilters] = useState({
     dateFilter: "all",
-    distanceKm: null,
+    distanceKm: 10, // Default 10km
   });
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
@@ -485,12 +485,38 @@ export default function HomePage() {
     localStorage.setItem("whatsup_location_name", name);
   };
 
-  // Handle GPS location
-  const handleUseGPS = (coords) => {
+  // Handle GPS location + auto scan
+  const handleUseGPS = async (coords) => {
     setUserLocation(coords);
     setLocationName("Posizione attuale");
     localStorage.setItem("whatsup_location", JSON.stringify(coords));
     localStorage.setItem("whatsup_location_name", "Posizione attuale");
+    
+    // Trigger automatic discovery scan for this location
+    toast.info("Scanning eventi nella tua zona...");
+    try {
+      const response = await fetch(`${API}/jobs/discovery/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: coords[0],
+          lng: coords[1],
+          max_queries: 3,
+          max_pages: 5
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.events_discovered > 0) {
+          toast.success(`Trovati ${result.events_discovered} nuovi eventi!`);
+        } else {
+          toast.info("Nessun nuovo evento trovato nella zona");
+        }
+      }
+    } catch (error) {
+      console.log("Discovery scan error:", error);
+    }
   };
 
   // Fetch events

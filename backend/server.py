@@ -1014,6 +1014,46 @@ async def run_discovery_job(request: Request):
     max_pages = body.get("max_pages", 10)
     categories = body.get("categories")
     
+    # Support for lat/lng based discovery
+    lat = body.get("lat")
+    lng = body.get("lng")
+    
+    # If lat/lng provided, find nearest city
+    if lat and lng:
+        # Find nearest Italian city from coordinates
+        from discovery_service import ITALIAN_CITIES
+        nearest_city = None
+        min_distance = float('inf')
+        for city_name in ITALIAN_CITIES:
+            # Get city coords (we'll use a simple lookup)
+            city_coords = {
+                "Milano": (45.4642, 9.1900),
+                "Roma": (41.9028, 12.4964),
+                "Torino": (45.0703, 7.6869),
+                "Napoli": (40.8518, 14.2681),
+                "Bologna": (44.4949, 11.3426),
+                "Firenze": (43.7696, 11.2558),
+                "Venezia": (45.4408, 12.3155),
+                "Genova": (44.4056, 8.9463),
+                "Palermo": (38.1157, 13.3615),
+                "Bari": (41.1171, 16.8719),
+                "Verona": (45.4384, 10.9916),
+                "Padova": (45.4064, 11.8768),
+                "Trieste": (45.6495, 13.7768),
+                "Catania": (37.5079, 15.0830),
+                "Cagliari": (39.2238, 9.1217),
+            }
+            if city_name in city_coords:
+                c_lat, c_lng = city_coords[city_name]
+                dist = haversine_distance(lat, lng, c_lat, c_lng)
+                if dist < min_distance:
+                    min_distance = dist
+                    nearest_city = city_name
+        
+        if nearest_city:
+            cities = [nearest_city]
+            logger.info(f"GPS Discovery: Using nearest city {nearest_city} (distance: {min_distance:.1f}km)")
+    
     # Check if already running
     if discovery_job_status["status"] == "running":
         raise HTTPException(status_code=409, detail="Discovery job già in esecuzione")
