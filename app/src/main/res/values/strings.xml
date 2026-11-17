@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">LockPlayer</string>
+    <string name="share_label">Ascolta con LockPlayer</string>
+    <string name="loading">Caricamento…</string>
+    <string name="queued">Aggiunto alla coda</string>
+    <string name="removed">Rimosso dalla coda</string>
+    <string name="error_not_youtube">Non è un link YouTube</string>
+    <string name="error_resolve">Impossibile caricare questo video</string>
+    <string name="error_playback">Errore di riproduzione</string>
+    <string name="nothing_playing">Niente in riproduzione</string>
+    <string name="share_hint_short">Condividi un video da YouTube</string>
+    <string name="empty_title">Nessun brano</string>
+    <string name="empty_body">Apri un video su YouTube, tocca «Condividi» e scegli «Ascolta con LockPlayer». Continuerà a suonare anche a schermo bloccato.</string>
+    <string name="open_youtube">Apri YouTube</string>
+    <string name="link_hint">Oppure incolla un link YouTube</string>
+    <string name="paste">Incolla</string>
+    <string name="add">Aggiungi</string>
+    <string name="queue">Coda (tieni premuto per rimuovere)</string>
+    <string name="widget_description">Controlli di LockPlayer</string>
+    <string name="cd_prev">Precedente</string>
+    <string name="cd_play">Riproduci / pausa</string>
+    <string name="cd_next">Successivo</string>
+</resources>
