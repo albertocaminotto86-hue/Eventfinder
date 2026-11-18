@@ -25,9 +25,11 @@
     <string name="offer_channel">Proposte da YouTube</string>
     <string name="offer_channel_desc">Propone di continuare in LockPlayer il video che stai guardando su YouTube</string>
     <string name="error_not_found">Non ho trovato questo video, usa Condividi</string>
-    <string name="offer_switch">Proponi LockPlayer quando parte un video su YouTube</string>
+    <string name="offer_switch">Bolla LockPlayer sui video di YouTube</string>
     <string name="access_missing">Per vedere cosa suona YouTube serve l\'«accesso alle notifiche».</string>
     <string name="access_grant">Concedi accesso</string>
     <string name="access_restricted_help">Se l\'opzione è grigia: Info app → ⋮ (in alto a destra) → «Consenti impostazioni con restrizioni», poi riprova.</string>
     <string name="access_app_info">Info app</string>
+    <string name="overlay_missing">Per mostrare la bolla sopra YouTube serve «Mostra sopra altre app». Senza, ricevi una notifica.</string>
+    <string name="overlay_grant">Consenti</string>
 </resources>

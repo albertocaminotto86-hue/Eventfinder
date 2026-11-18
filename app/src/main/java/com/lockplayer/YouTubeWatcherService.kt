@@ -16,15 +16,19 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
 /**
- * Watches the YouTube app's media session (this is why "notification access" is needed) and,
- * when a video starts playing, shows a heads-up notification offering to continue it in
- * LockPlayer with the screen locked.
+ * Watches the YouTube app's media session (this is why "notification access" is needed).
+ * While a video plays it shows a floating [Bubble] over YouTube (or, without the
+ * "display over other apps" permission, a one-time heads-up notification) offering to
+ * continue it in LockPlayer with the screen locked.
  */
 class YouTubeWatcherService : NotificationListenerService() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var sessions: MediaSessionManager? = null
     private val watched = mutableMapOf<SessionToken, Watch>()
+
+    private val bubble by lazy { Bubble(this) }
+    private var bubbleOwner: Watch? = null
 
     /** Last video we offered, so ignoring the offer doesn't make it come back. */
     private var lastOfferedKey: String? = null
@@ -48,6 +52,8 @@ class YouTubeWatcherService : NotificationListenerService() {
         sessions?.removeOnActiveSessionsChangedListener(sessionsListener)
         watched.values.forEach { it.controller.unregisterCallback(it) }
         watched.clear()
+        bubble.hide()
+        bubbleOwner = null
         super.onListenerDisconnected()
     }
 
@@ -57,7 +63,9 @@ class YouTubeWatcherService : NotificationListenerService() {
     private fun watch(controllers: List<MediaController>) {
         val youtube = controllers.filter { it.packageName in YOUTUBE_PACKAGES }
         val tokens = youtube.map { it.sessionToken }.toSet()
-        watched.keys.filter { it !in tokens }.forEach { watched.remove(it)?.let { w -> w.controller.unregisterCallback(w) } }
+        watched.keys.filter { it !in tokens }.forEach {
+            watched.remove(it)?.let { w -> w.controller.unregisterCallback(w); w.stop() }
+        }
         youtube.filter { it.sessionToken !in watched }.forEach { c ->
             val w = Watch(c)
             watched[c.sessionToken] = w
@@ -71,18 +79,36 @@ class YouTubeWatcherService : NotificationListenerService() {
         override fun onMetadataChanged(metadata: MediaMetadata?) = check()
 
         fun check() {
-            if (!Settings.offerOnYouTubePlay(this@YouTubeWatcherService)) return
-            if (controller.playbackState?.state != PlaybackState.STATE_PLAYING) return
-            val meta = controller.metadata ?: return
-            val title = meta.getString(MediaMetadata.METADATA_KEY_TITLE)?.takeIf { it.isNotBlank() } ?: return
+            val video = currentVideo()
+            if (video == null) {
+                // Paused, stopped, too short or feature off: no bubble for this session.
+                if (bubbleOwner == this) { bubble.hide(); bubbleOwner = null }
+                return
+            }
+            if (android.provider.Settings.canDrawOverlays(this@YouTubeWatcherService)) {
+                bubbleOwner = this
+                bubble.show(video, controller.sessionToken)
+            } else {
+                // No overlay permission: fall back to the one-time notification.
+                val key = "${video.title}|${video.channel}"
+                if (key == lastOfferedKey) return
+                lastOfferedKey = key
+                offer(controller, video)
+            }
+        }
+
+        fun stop() {
+            if (bubbleOwner == this) { bubble.hide(); bubbleOwner = null }
+        }
+
+        private fun currentVideo(): NowPlayingOnYouTube? {
+            if (!Settings.offerOnYouTubePlay(this@YouTubeWatcherService)) return null
+            if (controller.playbackState?.state != PlaybackState.STATE_PLAYING) return null
+            val meta = controller.metadata ?: return null
+            val title = meta.getString(MediaMetadata.METADATA_KEY_TITLE)?.takeIf { it.isNotBlank() } ?: return null
             val channel = meta.getString(MediaMetadata.METADATA_KEY_ARTIST).orEmpty()
             val durationSec = meta.getLong(MediaMetadata.METADATA_KEY_DURATION) / 1000
-            // Shorts and very short clips: not worth an offer.
-            if (durationSec in 1 until MIN_DURATION_SEC) return
-            val key = "$title|$channel"
-            if (key == lastOfferedKey) return
-            lastOfferedKey = key
-            offer(controller, NowPlayingOnYouTube(title, channel, durationSec))
+            return NowPlayingOnYouTube(title, channel, durationSec)
         }
     }
 
@@ -128,7 +154,6 @@ class YouTubeWatcherService : NotificationListenerService() {
         val YOUTUBE_PACKAGES = setOf("com.google.android.youtube")
         private const val CHANNEL_ID = "youtube_offer"
         const val NOTIFICATION_ID = 42
-        private const val MIN_DURATION_SEC = 60L
         private const val OFFER_TIMEOUT_MS = 8_000L
     }
 }

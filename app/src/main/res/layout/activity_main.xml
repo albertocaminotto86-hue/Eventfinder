@@ -56,6 +56,27 @@
                     android:text="@string/access_grant" />
             </LinearLayout>
         </LinearLayout>
+        <LinearLayout
+            android:id="@+id/overlayCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@color/surface"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:visibility="gone">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/overlay_missing"
+                android:textColor="@color/text" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/grantOverlay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:text="@string/overlay_grant" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Shown when the queue is empty -->

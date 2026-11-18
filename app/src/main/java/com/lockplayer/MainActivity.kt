@@ -78,6 +78,12 @@ class MainActivity : AppCompatActivity() {
         b.grantAccess.setOnClickListener {
             startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
+        b.grantOverlay.setOnClickListener {
+            startActivity(
+                Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                    .setData(Uri.fromParts("package", packageName, null))
+            )
+        }
         b.appInfo.setOnClickListener {
             startActivity(
                 Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
@@ -105,6 +111,8 @@ class MainActivity : AppCompatActivity() {
     private fun renderAccess() {
         val needsAccess = b.offerSwitch.isChecked && !Settings.hasNotificationAccess(this)
         b.accessCard.visibility = if (needsAccess) View.VISIBLE else View.GONE
+        val needsOverlay = b.offerSwitch.isChecked && !android.provider.Settings.canDrawOverlays(this)
+        b.overlayCard.visibility = if (needsOverlay) View.VISIBLE else View.GONE
     }
 
     override fun onStart() {

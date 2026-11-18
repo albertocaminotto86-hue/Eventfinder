@@ -15,10 +15,11 @@ background.
 - **Coda**: se qualcosa sta già suonando, il nuovo brano viene messo in fila.
 - **Widget home** con titolo e ⏮ ⏯ ⏭.
 - Si mette in pausa quando scolleghi le cuffie.
-- **Proposta automatica**: quando parte un video nell'app YouTube compare per qualche secondo
-  una notifica «Ascolta a schermo bloccato». Toccandola, YouTube va in pausa e il brano
-  continua in LockPlayer dallo stesso secondo. Non compare per video sotto il minuto (Shorts)
-  né due volte per lo stesso video. Si disattiva dall'interruttore nell'app.
+- **Bolla sui video di YouTube**: mentre un video suona nell'app YouTube (anche gli Shorts)
+  compare una bolla rossa col lucchetto. Toccandola, YouTube va in pausa e il brano continua
+  in LockPlayer dallo stesso secondo. Si trascina, si aggancia al bordo e ricorda la posizione.
+  Senza il permesso «Mostra sopra altre app» al suo posto compare una notifica una tantum.
+  Si disattiva dall'interruttore nell'app.
 
 ## Installazione sul telefono
 
@@ -28,7 +29,8 @@ background.
 4. Per la proposta automatica: nell'app tocca **Concedi accesso** e attiva LockPlayer
    nell'«accesso alle notifiche». Se l'opzione è grigia (Android 13+): Info app → ⋮ →
    «Consenti impostazioni con restrizioni», poi riprova.
-5. (Facoltativo) Tieni premuto sulla home → Widget → LockPlayer.
+5. Per la bolla: nell'app tocca **Consenti** e attiva «Mostra sopra altre app».
+6. (Facoltativo) Tieni premuto sulla home → Widget → LockPlayer.
 
 ## Come funziona
 
@@ -41,7 +43,7 @@ background.
 - `YouTubeDataSource` imposta le richieste nel formato che YouTube si aspetta.
 - `YouTubeWatcherService` (accesso alle notifiche) legge titolo, canale e durata che l'app
   YouTube pubblica nella sua sessione multimediale; `YouTubeSearch` + `VideoMatcher` trovano
-  lo stesso video, e `HandoffActivity` mette in pausa YouTube e passa il brano al lettore.
+  lo stesso video, `Bubble` disegna la bolla sopra YouTube e `HandoffActivity` mette in pausa YouTube e passa il brano al lettore.
 - I link agli stream scadono dopo alcune ore: in caso di errore l'app ne chiede uno nuovo e riprende.
 
 ## Limiti
