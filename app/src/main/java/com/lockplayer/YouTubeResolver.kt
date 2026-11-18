@@ -42,7 +42,10 @@ object YouTubeResolver {
 
     /** Blocking network call: run it off the main thread. */
     fun resolve(url: String): ResolvedTrack {
-        val info = StreamInfo.getInfo(ServiceList.YouTube, url)
+        // YouTube occasionally answers with an HTML page instead of JSON: one retry usually fixes it.
+        val info = runCatching { StreamInfo.getInfo(ServiceList.YouTube, url) }
+            .recoverCatching { Thread.sleep(800); StreamInfo.getInfo(ServiceList.YouTube, url) }
+            .getOrThrow()
         return ResolvedTrack(
             pageUrl = info.url,
             title = info.name,

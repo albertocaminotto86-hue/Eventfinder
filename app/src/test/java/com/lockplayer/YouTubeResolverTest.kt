@@ -7,8 +7,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.BeforeClass
 import org.junit.Test
 import org.schabi.newpipe.extractor.NewPipe
-import java.net.InetSocketAddress
-import java.net.Socket
 
 class YouTubeResolverTest {
 
@@ -32,13 +30,10 @@ class YouTubeResolverTest {
         assertNull(YouTubeResolver.extractYouTubeUrl("nessun link"))
     }
 
-    /** Live network test: needs access to www.youtube.com (skipped when offline). */
+    /** Live network test against www.youtube.com: run with LIVE_YT_TEST=1. */
     @Test
     fun resolvesRealVideoToAudioSource() {
-        val online = runCatching {
-            Socket().use { it.connect(InetSocketAddress("www.youtube.com", 443), 5000) }
-        }.isSuccess || System.getenv("HTTPS_PROXY") != null
-        assumeTrue(online)
+        assumeTrue(System.getenv("LIVE_YT_TEST") == "1")
 
         val track = YouTubeResolver.resolve("https://www.youtube.com/watch?v=jNQXAC9IVRw")
         println("title=${track.title} artist=${track.artist} duration=${track.durationSec}")
