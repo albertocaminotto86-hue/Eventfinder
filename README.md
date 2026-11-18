@@ -15,13 +15,20 @@ background.
 - **Coda**: se qualcosa sta già suonando, il nuovo brano viene messo in fila.
 - **Widget home** con titolo e ⏮ ⏯ ⏭.
 - Si mette in pausa quando scolleghi le cuffie.
+- **Proposta automatica**: quando parte un video nell'app YouTube compare per qualche secondo
+  una notifica «Ascolta a schermo bloccato». Toccandola, YouTube va in pausa e il brano
+  continua in LockPlayer dallo stesso secondo. Non compare per video sotto il minuto (Shorts)
+  né due volte per lo stesso video. Si disattiva dall'interruttore nell'app.
 
 ## Installazione sul telefono
 
 1. Scarica `app-release.apk` sul telefono.
 2. Aprilo; se Android lo chiede, consenti l'installazione da questa fonte.
 3. Apri LockPlayer una volta e consenti le notifiche.
-4. (Facoltativo) Tieni premuto sulla home → Widget → LockPlayer.
+4. Per la proposta automatica: nell'app tocca **Concedi accesso** e attiva LockPlayer
+   nell'«accesso alle notifiche». Se l'opzione è grigia (Android 13+): Info app → ⋮ →
+   «Consenti impostazioni con restrizioni», poi riprova.
+5. (Facoltativo) Tieni premuto sulla home → Widget → LockPlayer.
 
 ## Come funziona
 
@@ -32,12 +39,17 @@ background.
   per trovare lo stream audio del video e costruisce un manifest DASH, così l'audio viene
   scaricato a pezzi come fanno i client ufficiali.
 - `YouTubeDataSource` imposta le richieste nel formato che YouTube si aspetta.
+- `YouTubeWatcherService` (accesso alle notifiche) legge titolo, canale e durata che l'app
+  YouTube pubblica nella sua sessione multimediale; `YouTubeSearch` + `VideoMatcher` trovano
+  lo stesso video, e `HandoffActivity` mette in pausa YouTube e passa il brano al lettore.
 - I link agli stream scadono dopo alcune ore: in caso di errore l'app ne chiede uno nuovo e riprende.
 
 ## Limiti
 
 - YouTube cambia spesso i suoi meccanismi: quando succede va aggiornata la versione di
   NewPipeExtractor in `app/build.gradle.kts` e ricompilata l'app.
+- La proposta riconosce il video cercando titolo, canale e durata: in rari casi (caricamenti
+  identici dello stesso brano) può prendere una versione diversa. In quel caso usa Condividi.
 - Riprodurre YouTube in background senza Premium è contro i termini di servizio di YouTube:
   l'app è pensata per uso personale.
 - NewPipeExtractor è sotto licenza GPLv3, quindi lo è anche questa app se la distribuisci.
