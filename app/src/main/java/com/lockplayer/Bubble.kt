@@ -66,16 +66,17 @@ class Bubble(private val context: Context) {
     private fun attach() {
         val onRight = prefs.getBoolean(KEY_RIGHT, true)
         val bubble = FrameLayout(context).apply {
+            // White ring around the round logo so it stands out on any thumbnail.
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(0xFFE53935.toInt())
-                setStroke(dp(3), 0xFFFFFFFF.toInt())
+                setColor(0xFFFFFFFF.toInt())
             }
+            setPadding(dp(3), dp(3), dp(3), dp(3))
             elevation = dp(6).toFloat()
             contentDescription = context.getString(R.string.offer_action)
             addView(
-                ImageView(context).apply { setImageResource(R.drawable.ic_lock_play) },
-                FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER),
+                ImageView(context).apply { setImageResource(R.drawable.ic_logo) },
+                FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT),
             )
         }
         val label = TextView(context).apply {

@@ -123,7 +123,7 @@ class YouTubeWatcherService : NotificationListenerService() {
             this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val notification = Notification.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_lock_play)
+            .setSmallIcon(R.drawable.ic_logo_mono)
             .setContentTitle(video.title)
             .setContentText(getString(R.string.offer_text))
             .setCategory(Notification.CATEGORY_RECOMMENDATION)
