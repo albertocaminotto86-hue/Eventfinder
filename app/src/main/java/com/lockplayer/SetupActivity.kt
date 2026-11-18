@@ -40,14 +40,18 @@ class SetupActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= 33) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
             else open(Permissions.notificationsIntent(this))
         }
-        b.stepAccess.setup(2, R.string.step_access_title, R.string.step_access_body, R.string.step_access_button) {
+        b.stepA11y.setup(2, R.string.step_a11y_title, R.string.step_a11y_body, R.string.step_a11y_button) {
+            open(Permissions.accessibilityIntent(this), Permissions.accessibilityFallback())
+        }
+        b.stepA11y.secondary.setOnClickListener { open(Permissions.appInfoIntent(this)) }
+        b.stepAccess.setup(4, R.string.step_access_title, R.string.step_access_body, R.string.step_access_button) {
             open(Permissions.notificationAccessIntent(this), Permissions.notificationAccessFallback())
         }
         b.stepAccess.secondary.setOnClickListener { open(Permissions.appInfoIntent(this)) }
-        b.stepOverlay.setup(3, R.string.step_overlay_title, R.string.step_overlay_body, R.string.step_overlay_button) {
+        b.stepOverlay.setup(5, R.string.step_overlay_title, R.string.step_overlay_body, R.string.step_overlay_button) {
             open(Permissions.overlayIntent(this))
         }
-        b.stepBattery.setup(4, R.string.step_battery_title, R.string.step_battery_body, R.string.step_battery_button) {
+        b.stepBattery.setup(3, R.string.step_battery_title, R.string.step_battery_body, R.string.step_battery_button) {
             open(Permissions.batteryIntent(this), Permissions.batteryFallback())
         }
 
@@ -62,25 +66,27 @@ class SetupActivity : AppCompatActivity() {
 
     private fun render() {
         val notif = Permissions.notificationsGranted(this)
+        val a11y = Permissions.accessibilityGranted(this)
         val access = Permissions.notificationAccessGranted(this)
         val overlay = Permissions.overlayGranted(this)
         val battery = Permissions.batteryUnrestricted(this)
 
         b.stepNotifications.state(notif)
+        b.stepA11y.state(a11y)
+        b.stepBattery.state(battery)
         b.stepAccess.state(access)
         b.stepOverlay.state(overlay)
-        b.stepBattery.state(battery)
 
-        // Only show the "it's greyed out" help while notification access is still missing
-        // and Android may be blocking it as a restricted setting.
-        val blocked = Permissions.restrictedSettingsBlocked(this)
-        b.stepAccess.helpBox.visibility = if (!access && blocked != false) View.VISIBLE else View.GONE
+        // "It's greyed out" help, only while Android may be blocking restricted settings.
+        val blocked = Permissions.restrictedSettingsBlocked(this) != false
+        b.stepA11y.helpBox.visibility = if (!a11y && blocked) View.VISIBLE else View.GONE
+        b.stepAccess.helpBox.visibility = if (!access && blocked) View.VISIBLE else View.GONE
 
-        val required = listOf(notif, access, overlay).count { it }
-        b.progress.text = getString(R.string.setup_progress, required, 3)
-        b.progressBar.max = 3
+        val required = listOf(notif, a11y).count { it }
+        b.progress.text = getString(R.string.setup_progress, required, 2)
+        b.progressBar.max = 2
         b.progressBar.progress = required
-        val complete = required == 3
+        val complete = required == 2
         b.done.visibility = if (complete) View.VISIBLE else View.GONE
         b.skip.visibility = if (complete) View.GONE else View.VISIBLE
         b.subtitle.setText(if (complete) R.string.setup_subtitle_done else R.string.setup_subtitle)

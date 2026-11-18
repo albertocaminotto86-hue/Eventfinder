@@ -77,6 +77,27 @@ class MainActivity : AppCompatActivity() {
             Settings.setOfferOnYouTubePlay(this, checked)
             renderAccess()
         }
+        b.badgesSwitch.isChecked = Settings.feedBadges(this)
+        b.badgesSwitch.setOnCheckedChangeListener { _, checked ->
+            Settings.setFeedBadges(this, checked)
+            renderAccess()
+        }
+        b.dump.setOnClickListener {
+            Settings.requestDump(this)
+            Toast.makeText(this, R.string.dump_hint, Toast.LENGTH_LONG).show()
+            openYouTube()
+        }
+        b.dumpShare.setOnClickListener {
+            val dump = Settings.lastDump(this)
+            if (dump == null) {
+                Toast.makeText(this, R.string.dump_none, Toast.LENGTH_LONG).show()
+            } else {
+                startActivity(Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, dump),
+                    getString(R.string.dump_share),
+                ))
+            }
+        }
         b.openSetup.setOnClickListener { startActivity(Intent(this, SetupActivity::class.java)) }
 
         b.seek.addOnSliderTouchListener(object :
@@ -97,7 +118,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderAccess() {
-        val needsSetup = b.offerSwitch.isChecked && !Permissions.setupComplete(this)
+        val needsSetup = b.badgesSwitch.isChecked && !Permissions.setupComplete(this)
         b.setupBanner.visibility = if (needsSetup) View.VISIBLE else View.GONE
         val trace = Settings.lastHandoff(this)
         b.diagnostics.text = trace?.let { getString(R.string.diagnostics_title) + "\n" + it }

@@ -85,6 +85,13 @@ class YouTubeWatcherService : NotificationListenerService() {
                 if (bubbleOwner == this) { bubble.hide(); bubbleOwner = null }
                 return
             }
+            if (Settings.hasAccessibility(this@YouTubeWatcherService) &&
+                Settings.feedBadges(this@YouTubeWatcherService)
+            ) {
+                // The badges on the thumbnails replace the floating bubble.
+                if (bubbleOwner == this) { bubble.hide(); bubbleOwner = null }
+                return
+            }
             if (android.provider.Settings.canDrawOverlays(this@YouTubeWatcherService)) {
                 bubbleOwner = this
                 bubble.show(video, controller.sessionToken)

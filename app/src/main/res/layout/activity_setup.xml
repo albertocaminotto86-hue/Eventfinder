@@ -44,7 +44,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
-                android:max="3" />
+                android:max="2" />
             <TextView
                 android:id="@+id/progress"
                 android:layout_width="match_parent"
@@ -55,8 +55,7 @@
                 android:textSize="12sp" />
 
             <include android:id="@+id/stepNotifications" layout="@layout/item_setup_step" />
-            <include android:id="@+id/stepAccess" layout="@layout/item_setup_step" />
-            <include android:id="@+id/stepOverlay" layout="@layout/item_setup_step" />
+            <include android:id="@+id/stepA11y" layout="@layout/item_setup_step" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -67,6 +66,17 @@
                 android:textColor="@color/text_dim"
                 android:textSize="12sp" />
             <include android:id="@+id/stepBattery" layout="@layout/item_setup_step" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/setup_bubble_section"
+                android:textColor="@color/text_dim"
+                android:textSize="12sp" />
+            <include android:id="@+id/stepAccess" layout="@layout/item_setup_step" />
+            <include android:id="@+id/stepOverlay" layout="@layout/item_setup_step" />
         </LinearLayout>
     </ScrollView>
 

@@ -78,6 +78,20 @@
             </intent-filter>
         </service>
 
+        <!-- Draws the LockPlayer badge on video thumbnails in the YouTube app. -->
+        <service
+            android:name=".FeedBadgeService"
+            android:exported="true"
+            android:label="@string/a11y_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/feed_badge_service" />
+        </service>
+
         <service
             android:name=".PlaybackService"
             android:exported="true"

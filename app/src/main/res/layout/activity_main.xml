@@ -13,6 +13,12 @@
         android:paddingHorizontal="16dp"
         android:paddingTop="8dp">
         <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/badgesSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/badges_switch"
+            android:textColor="@color/text" />
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/offerSwitch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -224,6 +230,28 @@
         android:textIsSelectable="true"
         android:textSize="11sp"
         android:visibility="gone" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/dump"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/dump_button"
+            android:textColor="#B39DDB"
+            android:textSize="12sp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/dumpShare"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/dump_share"
+            android:textColor="#B39DDB"
+            android:textSize="12sp" />
+    </LinearLayout>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/queue"
         android:layout_width="match_parent"

@@ -74,9 +74,17 @@ object Permissions {
 
     fun batteryFallback() = Intent(SystemSettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
 
-    /** Required for the YouTube bubble; battery is optional. */
-    fun setupComplete(c: Context) =
-        notificationsGranted(c) && notificationAccessGranted(c) && overlayGranted(c)
+    fun accessibilityGranted(c: Context) = Settings.hasAccessibility(c)
+
+    /** LockPlayer's own page in Accessibility (works on most Android 11+ phones), else the list. */
+    fun accessibilityIntent(c: Context): Intent =
+        Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS")
+            .putExtra(Intent.EXTRA_COMPONENT_NAME, ComponentName(c, FeedBadgeService::class.java))
+
+    fun accessibilityFallback() = Intent(SystemSettings.ACTION_ACCESSIBILITY_SETTINGS)
+
+    /** Needed for the badges on YouTube thumbnails; the rest is optional. */
+    fun setupComplete(c: Context) = notificationsGranted(c) && accessibilityGranted(c)
 
     private fun packageUri(c: Context) = Uri.fromParts("package", c.packageName, null)
 }
