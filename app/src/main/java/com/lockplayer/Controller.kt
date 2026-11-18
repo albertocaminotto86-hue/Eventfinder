@@ -13,17 +13,24 @@ object Controller {
             SessionToken(context, ComponentName(context, PlaybackService::class.java)),
         ).buildAsync()
 
-    /** Plays now if nothing is playing, otherwise appends to the queue. Returns true if queued. */
-    fun playOrQueue(controller: MediaController, youTubeUrl: String): Boolean {
-        val item = PlaybackService.request(youTubeUrl)
-        val busy = controller.mediaItemCount > 0 && controller.playWhenReady
-        controller.addMediaItem(item)
-        if (!busy) {
+    /**
+     * Plays the link now if nothing is playing (or [playNow] is set), otherwise appends it
+     * to the queue. Returns true if it was queued.
+     */
+    fun playOrQueue(
+        controller: MediaController,
+        youTubeUrl: String,
+        startMs: Long = 0,
+        playNow: Boolean = false,
+    ): Boolean {
+        val queue = !playNow && controller.mediaItemCount > 0 && controller.playWhenReady
+        controller.addMediaItem(PlaybackService.request(youTubeUrl))
+        if (!queue) {
             // Commands are applied in order, so this runs after the service has resolved the link.
-            controller.seekTo(controller.mediaItemCount - 1, 0)
+            controller.seekTo(controller.mediaItemCount - 1, startMs)
             controller.prepare()
             controller.play()
         }
-        return busy
+        return queue
     }
 }

@@ -70,6 +70,21 @@ class MainActivity : AppCompatActivity() {
         b.add.setOnClickListener { addFromField() }
         b.paste.setOnClickListener { pasteFromClipboard() }
         b.openYoutube.setOnClickListener { openYouTube() }
+        b.offerSwitch.isChecked = Settings.offerOnYouTubePlay(this)
+        b.offerSwitch.setOnCheckedChangeListener { _, checked ->
+            Settings.setOfferOnYouTubePlay(this, checked)
+            renderAccess()
+        }
+        b.grantAccess.setOnClickListener {
+            startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }
+        b.appInfo.setOnClickListener {
+            startActivity(
+                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.fromParts("package", packageName, null))
+            )
+        }
+
         b.seek.addOnSliderTouchListener(object :
             com.google.android.material.slider.Slider.OnSliderTouchListener {
             override fun onStartTrackingTouch(slider: com.google.android.material.slider.Slider) {
@@ -80,6 +95,16 @@ class MainActivity : AppCompatActivity() {
                 controller?.seekTo(slider.value.toLong())
             }
         })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        renderAccess() // the user may be coming back from the system settings
+    }
+
+    private fun renderAccess() {
+        val needsAccess = b.offerSwitch.isChecked && !Settings.hasNotificationAccess(this)
+        b.accessCard.visibility = if (needsAccess) View.VISIBLE else View.GONE
     }
 
     override fun onStart() {

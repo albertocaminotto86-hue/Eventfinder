@@ -51,6 +51,26 @@
             </intent-filter>
         </activity>
 
+        <!-- Opened from the "listen with the screen locked" offer notification. -->
+        <activity
+            android:name=".HandoffActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.LockPlayer.Translucent" />
+
+        <!-- Sees what the YouTube app is playing (needs "notification access"). -->
+        <service
+            android:name=".YouTubeWatcherService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".PlaybackService"
             android:exported="true"

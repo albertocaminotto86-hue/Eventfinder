@@ -20,4 +20,14 @@
     <string name="cd_prev">Precedente</string>
     <string name="cd_play">Riproduci / pausa</string>
     <string name="cd_next">Successivo</string>
+    <string name="offer_text">Tocca per continuare a schermo bloccato</string>
+    <string name="offer_action">Ascolta a schermo bloccato</string>
+    <string name="offer_channel">Proposte da YouTube</string>
+    <string name="offer_channel_desc">Propone di continuare in LockPlayer il video che stai guardando su YouTube</string>
+    <string name="error_not_found">Non ho trovato questo video, usa Condividi</string>
+    <string name="offer_switch">Proponi LockPlayer quando parte un video su YouTube</string>
+    <string name="access_missing">Per vedere cosa suona YouTube serve l\'«accesso alle notifiche».</string>
+    <string name="access_grant">Concedi accesso</string>
+    <string name="access_restricted_help">Se l\'opzione è grigia: Info app → ⋮ (in alto a destra) → «Consenti impostazioni con restrizioni», poi riprova.</string>
+    <string name="access_app_info">Info app</string>
 </resources>

@@ -5,6 +5,59 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
+    <!-- "Offer when YouTube plays" setting -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp">
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/offerSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/offer_switch"
+            android:textColor="@color/text" />
+        <LinearLayout
+            android:id="@+id/accessCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/surface"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:visibility="gone">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/access_missing"
+                android:textColor="@color/text" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/access_restricted_help"
+                android:textColor="@color/text_dim"
+                android:textSize="12sp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="horizontal">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/appInfo"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/access_app_info" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/grantAccess"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/access_grant" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
     <!-- Shown when the queue is empty -->
     <LinearLayout
         android:id="@+id/empty"
