@@ -1,5 +1,6 @@
 <resources>
-    <color name="accent">#E53935</color>
+    <color name="accent">#5E35B1</color>
+    <color name="brand_orange">#FF6F47</color>
     <color name="bg">#121212</color>
     <color name="surface">#1E1E1E</color>
     <color name="text">#FFFFFF</color>

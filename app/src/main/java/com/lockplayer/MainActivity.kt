@@ -1,10 +1,8 @@
 package com.lockplayer
 
-import android.Manifest
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -50,8 +48,12 @@ class MainActivity : AppCompatActivity() {
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
 
-        if (Build.VERSION.SDK_INT >= 33) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        // First launch: guided setup.
+        if (savedInstanceState == null && !Permissions.setupComplete(this) &&
+            !getSharedPreferences("settings", MODE_PRIVATE).getBoolean("setup_seen", false)
+        ) {
+            getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("setup_seen", true).apply()
+            startActivity(Intent(this, SetupActivity::class.java))
         }
 
         b.queue.layoutManager = LinearLayoutManager(this)
@@ -75,21 +77,7 @@ class MainActivity : AppCompatActivity() {
             Settings.setOfferOnYouTubePlay(this, checked)
             renderAccess()
         }
-        b.grantAccess.setOnClickListener {
-            startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-        }
-        b.grantOverlay.setOnClickListener {
-            startActivity(
-                Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                    .setData(Uri.fromParts("package", packageName, null))
-            )
-        }
-        b.appInfo.setOnClickListener {
-            startActivity(
-                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                    .setData(Uri.fromParts("package", packageName, null))
-            )
-        }
+        b.openSetup.setOnClickListener { startActivity(Intent(this, SetupActivity::class.java)) }
 
         b.seek.addOnSliderTouchListener(object :
             com.google.android.material.slider.Slider.OnSliderTouchListener {
@@ -109,10 +97,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderAccess() {
-        val needsAccess = b.offerSwitch.isChecked && !Settings.hasNotificationAccess(this)
-        b.accessCard.visibility = if (needsAccess) View.VISIBLE else View.GONE
-        val needsOverlay = b.offerSwitch.isChecked && !android.provider.Settings.canDrawOverlays(this)
-        b.overlayCard.visibility = if (needsOverlay) View.VISIBLE else View.GONE
+        val needsSetup = b.offerSwitch.isChecked && !Permissions.setupComplete(this)
+        b.setupBanner.visibility = if (needsSetup) View.VISIBLE else View.GONE
         val trace = Settings.lastHandoff(this)
         b.diagnostics.text = trace?.let { getString(R.string.diagnostics_title) + "\n" + it }
         b.diagnostics.visibility = if (trace != null) View.VISIBLE else View.GONE

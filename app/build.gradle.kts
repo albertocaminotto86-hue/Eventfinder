@@ -11,8 +11,8 @@ android {
         applicationId = "com.lockplayer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.4.0"
+        versionCode = 6
+        versionName = "0.5.0"
     }
 
     // Personal-use key kept in the repo so every build can update the installed app.
@@ -38,7 +38,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures { viewBinding = true }
-    testOptions { unitTests.isReturnDefaultValues = true }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
+    }
     packaging {
         resources.excludes += setOf("META-INF/*.kotlin_module", "META-INF/DEPENDENCIES")
     }
@@ -65,5 +68,7 @@ dependencies {
     implementation("io.coil-kt:coil:2.7.0")
     implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.1")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.18.1")
+    testImplementation("androidx.test:core:1.7.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 }
