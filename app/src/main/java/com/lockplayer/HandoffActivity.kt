@@ -37,9 +37,13 @@ class HandoffActivity : DeliverActivity() {
 
         toast(R.string.loading)
         thread {
-            val url = runCatching { YouTubeSearch.find(video) }
-                .onFailure { Log.w(TAG, "Search failed", it) }
-                .getOrNull()
+            val result = runCatching { YouTubeSearch.find(video) }
+                .getOrElse {
+                    Log.w(TAG, "Search failed", it)
+                    YouTubeSearch.Result(null, "Errore: ${it.javaClass.simpleName}: ${it.message}")
+                }
+            Settings.setLastHandoff(this, result.trace)
+            val url = result.url
             handler.post {
                 if (url == null) {
                     toast(R.string.error_not_found, long = true)

@@ -32,4 +32,5 @@
     <string name="access_app_info">Info app</string>
     <string name="overlay_missing">Per mostrare la bolla sopra YouTube serve «Mostra sopra altre app». Senza, ricevi una notifica.</string>
     <string name="overlay_grant">Consenti</string>
+    <string name="diagnostics_title">Diagnostica ultimo tocco sulla bolla:</string>
 </resources>

@@ -11,7 +11,9 @@ class YouTubeSearchTest {
     fun findsVideoFromYouTubeAppMetadata() {
         assumeTrue(System.getenv("LIVE_YT_TEST") == "1")
         NewPipe.init(ExtractorDownloader.instance)
-        val url = YouTubeSearch.find(NowPlayingOnYouTube("Me at the zoo", "jawed", 19))
+        val result = YouTubeSearch.find(NowPlayingOnYouTube("Me at the zoo", "jawed", 19))
+        println(result.trace)
+        val url = result.url
         println("found=$url")
         assertEquals("jNQXAC9IVRw", url?.substringAfter("v=")?.take(11))
     }

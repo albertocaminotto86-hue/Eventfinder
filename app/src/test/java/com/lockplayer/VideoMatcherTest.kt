@@ -45,4 +45,23 @@ class VideoMatcherTest {
         )
         assertEquals("u/y", best?.url)
     }
+
+    @Test
+    fun toleratesTruncatedOrSlightlyDifferentTitles() {
+        val t = NowPlayingOnYouTube("Lezione di cucina: pasta fresca fatta in casa", "Chef Rossi", 0)
+        val best = VideoMatcher.pickBest(
+            t,
+            listOf(
+                Candidate("u/other", "Pane fatto in casa", "Chef Rossi", 600),
+                Candidate("u/ok", "Lezione di cucina: pasta fresca fatta in casa | Episodio 3", "Chef Rossi", 845),
+            ),
+        )
+        assertEquals("u/ok", best?.url)
+    }
+
+    @Test
+    fun titleOnlyIsEnoughWhenYouTubeGivesNothingElse() {
+        val t = NowPlayingOnYouTube("Un titolo molto particolare", "", 0)
+        assertEquals("u/1", VideoMatcher.pickBest(t, listOf(Candidate("u/1", "Un titolo molto particolare", "X", 100)))?.url)
+    }
 }

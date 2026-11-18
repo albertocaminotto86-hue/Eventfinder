@@ -113,6 +113,9 @@ class MainActivity : AppCompatActivity() {
         b.accessCard.visibility = if (needsAccess) View.VISIBLE else View.GONE
         val needsOverlay = b.offerSwitch.isChecked && !android.provider.Settings.canDrawOverlays(this)
         b.overlayCard.visibility = if (needsOverlay) View.VISIBLE else View.GONE
+        val trace = Settings.lastHandoff(this)
+        b.diagnostics.text = trace?.let { getString(R.string.diagnostics_title) + "\n" + it }
+        b.diagnostics.visibility = if (trace != null) View.VISIBLE else View.GONE
     }
 
     override fun onStart() {
