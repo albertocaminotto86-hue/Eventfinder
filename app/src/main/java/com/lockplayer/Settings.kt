@@ -11,6 +11,7 @@ object Settings {
     private const val KEY_BADGES = "feed_badges"
     private const val KEY_DUMP_REQ = "dump_requested"
     private const val KEY_DUMP = "dump"
+    private const val KEY_BADGE_STATUS = "badge_status"
 
     fun offerOnYouTubePlay(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_OFFER, true)
@@ -51,6 +52,12 @@ object Settings {
 
     fun lastDump(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DUMP, null)
+
+    fun saveBadgeStatus(context: Context, status: String) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_BADGE_STATUS, status).apply()
+
+    fun badgeStatus(context: Context): String? =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_BADGE_STATUS, null)
 
     fun hasAccessibility(context: Context): Boolean {
         val me = ComponentName(context, FeedBadgeService::class.java).flattenToString()

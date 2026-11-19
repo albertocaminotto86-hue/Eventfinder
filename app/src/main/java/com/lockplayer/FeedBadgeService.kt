@@ -37,6 +37,7 @@ class FeedBadgeService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         wm = getSystemService(WindowManager::class.java)
+        Settings.saveBadgeStatus(this, getString(R.string.badge_status_connected))
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -70,7 +71,9 @@ class FeedBadgeService : AccessibilityService() {
 
         val screen = Rect().also { root.getBoundsInScreen(it) }
         val cards = mutableListOf<Pair<Rect, NowPlayingOnYouTube>>()
-        collect(root, cards, depth = 0)
+        val samples = mutableListOf<String>()
+        collect(root, cards, samples, depth = 0, screenWidth = screen.width())
+        reportStatus(cards, samples, root)
 
         val size = dp(36)
         val margin = dp(8)
@@ -100,17 +103,51 @@ class FeedBadgeService : AccessibilityService() {
     }
 
     /** Finds nodes whose description looks like a YouTube video card. */
-    private fun collect(node: AccessibilityNodeInfo, out: MutableList<Pair<Rect, NowPlayingOnYouTube>>, depth: Int) {
-        if (depth > 40) return
-        val video = FeedItemParser.parse(node.contentDescription?.toString())
-        if (video != null) {
-            val r = Rect().also { node.getBoundsInScreen(it) }
-            if (!r.isEmpty && out.none { Rect.intersects(it.first, r) && it.first.contains(r) }) {
-                out += r to video
-            }
+    private fun collect(
+        node: AccessibilityNodeInfo,
+        out: MutableList<Pair<Rect, NowPlayingOnYouTube>>,
+        samples: MutableList<String>,
+        depth: Int,
+        screenWidth: Int,
+    ) {
+        if (depth > 50) return
+        val desc = (node.contentDescription ?: node.text)?.toString()
+        if (desc != null && desc.length > 15 && samples.size < 6) samples += desc.take(140)
+        val r = Rect().also { node.getBoundsInScreen(it) }
+        // Big, thumbnail-sized nodes are almost surely video cards: accept them even without a view count.
+        val big = r.width() > screenWidth * 0.6 && r.height() > r.width() * 0.4
+        val video = FeedItemParser.parse(desc) ?: if (big) FeedItemParser.parse(desc, requireViews = false) else null
+        if (video != null && !r.isEmpty) {
+            if (out.none { it.first.contains(r) }) out += r to video
             return // children of a card are parts of the same card
         }
-        for (i in 0 until node.childCount) node.getChild(i)?.let { collect(it, out, depth + 1) }
+        for (i in 0 until node.childCount) node.getChild(i)?.let { collect(it, out, samples, depth + 1, screenWidth) }
+    }
+
+    private var lastReport = 0L
+    private var autoDumped = false
+
+    /** Saves what the last scan saw, shown in the app; dumps the screen once if nothing matched. */
+    private fun reportStatus(
+        cards: List<Pair<Rect, NowPlayingOnYouTube>>,
+        samples: List<String>,
+        root: AccessibilityNodeInfo,
+    ) {
+        val now = System.currentTimeMillis()
+        if (now - lastReport < 1500) return
+        lastReport = now
+        val time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ITALY).format(java.util.Date(now))
+        val sb = StringBuilder("Ultima lettura di YouTube: $time\nVideo riconosciuti: ${cards.size}\n")
+        cards.take(2).forEach { sb.append("  ✓ ${it.second.title.take(60)} · ${it.second.durationSec}s\n") }
+        if (cards.isEmpty()) {
+            sb.append("Testi visti (esempi):\n")
+            samples.forEach { sb.append("  · ").append(it).append('\n') }
+            if (!autoDumped) {
+                autoDumped = true
+                Settings.saveDump(this, dump(root))
+            }
+        }
+        Settings.saveBadgeStatus(this, sb.toString())
     }
 
     private fun newBadge(): Badge {

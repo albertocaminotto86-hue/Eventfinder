@@ -120,9 +120,18 @@ class MainActivity : AppCompatActivity() {
     private fun renderAccess() {
         val needsSetup = b.badgesSwitch.isChecked && !Permissions.setupComplete(this)
         b.setupBanner.visibility = if (needsSetup) View.VISIBLE else View.GONE
+        val badge = when {
+            !b.badgesSwitch.isChecked -> null
+            !Settings.hasAccessibility(this) -> getString(R.string.badge_status_off)
+            else -> Settings.badgeStatus(this) ?: getString(R.string.badge_status_never)
+        }
         val trace = Settings.lastHandoff(this)
-        b.diagnostics.text = trace?.let { getString(R.string.diagnostics_title) + "\n" + it }
-        b.diagnostics.visibility = if (trace != null) View.VISIBLE else View.GONE
+        val text = listOfNotNull(
+            badge?.let { getString(R.string.badge_status_title) + "\n" + it },
+            trace?.let { getString(R.string.diagnostics_title) + "\n" + it },
+        ).joinToString("\n\n")
+        b.diagnostics.text = text
+        b.diagnostics.visibility = if (text.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     override fun onStart() {

@@ -40,4 +40,17 @@ class FeedItemParserTest {
         assertNull(FeedItemParser.parse("Notifications - 3 new"))
         assertNull(FeedItemParser.parse("Mix - 50 minutes - playlist"))
     }
+
+    @Test
+    fun parsesChannelJoinedWithGoToChannel() {
+        val v = FeedItemParser.parse("Titolo bello - 12 minutes, 4 seconds - Go to channel Canale Uno - 1.2M views - 2 days ago - play video")!!
+        assertEquals("Canale Uno", v.channel)
+        assertEquals(724L, v.durationSec)
+    }
+
+    @Test
+    fun relaxedModeAcceptsCardWithoutViews() {
+        assertNull(FeedItemParser.parse("Titolo - 3 minutes"))
+        assertEquals("Titolo", FeedItemParser.parse("Titolo - 3 minutes", requireViews = false)?.title)
+    }
 }

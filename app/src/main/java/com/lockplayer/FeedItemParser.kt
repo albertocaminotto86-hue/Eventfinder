@@ -13,21 +13,27 @@ object FeedItemParser {
     )
     private val clock = Regex("""^\d{1,2}(:\d{2}){1,2}$""")
     private val goToChannel = Regex("""^(go to channel|vai al canale)$""", RegexOption.IGNORE_CASE)
-    private val views = Regex("""(views?|visualizzazion[ei])""", RegexOption.IGNORE_CASE)
+    private val goToChannelPrefix = Regex("""^(go to channel|vai al canale)\s+""", RegexOption.IGNORE_CASE)
+    private val views = Regex("""(views?|visualizzazion[ei]|watching|spettatori)""", RegexOption.IGNORE_CASE)
 
-    fun parse(description: String?): NowPlayingOnYouTube? {
+    /**
+     * @param requireViews when true, only descriptions that also mention a view count are
+     *   accepted (filters out playlists and buttons); large thumbnail-sized nodes relax this.
+     */
+    fun parse(description: String?, requireViews: Boolean = true): NowPlayingOnYouTube? {
         if (description.isNullOrBlank()) return null
-        val parts = description.split(" - ").map { it.trim() }
+        // YouTube separates fields with " - ", " · " or ", " depending on version/language.
+        val parts = description.split(" - ", " · ", " • ").map { it.trim() }.filter { it.isNotEmpty() }
         val durIndex = parts.indexOfFirst { isDuration(it) }
         if (durIndex <= 0) return null
-        // Must look like a video card (has a view count), not e.g. a playlist or a button.
-        if (parts.none { views.containsMatchIn(it) }) return null
+        if (requireViews && parts.none { views.containsMatchIn(it) }) return null
 
         val title = parts.subList(0, durIndex).joinToString(" - ")
         val rest = parts.drop(durIndex + 1)
         val channel = rest.indexOfFirst { goToChannel.matches(it) }
             .let { i -> if (i >= 0) rest.getOrNull(i + 1) else rest.firstOrNull() }
             .orEmpty()
+            .replace(goToChannelPrefix, "")
             .takeUnless { views.containsMatchIn(it) }
             .orEmpty()
         return NowPlayingOnYouTube(title, channel, durationSec(parts[durIndex]))
