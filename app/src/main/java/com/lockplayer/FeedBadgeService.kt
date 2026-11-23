@@ -12,6 +12,7 @@ import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -61,8 +62,18 @@ class FeedBadgeService : AccessibilityService() {
             ) hideAll()
             return
         }
-        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) closeMenu()
-        // Coalesce bursts of scroll/content events into one scan per frame or so.
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+            // The badges are windows over YouTube and can't move with its list: rather than
+            // chase the thumbnails, hide them while scrolling and fade them back in once it stops.
+            closeMenu()
+            lastScrollAt = SystemClock.uptimeMillis()
+            hideBadges()
+            handler.removeCallbacks(settled)
+            handler.postDelayed(settled, SETTLE_MS)
+            return
+        }
+        if (isScrolling()) return // content changes caused by the scroll itself
+        // Coalesce bursts of content events into one scan per frame or so.
         if (!scanPending) {
             scanPending = true
             handler.postDelayed({ scanPending = false; scan() }, 60)
@@ -76,7 +87,22 @@ class FeedBadgeService : AccessibilityService() {
         super.onDestroy()
     }
 
+    // ---- Hidden while scrolling ----
+
+    private var lastScrollAt = 0L
+    private val settled = Runnable { scan() }
+
+    /** YouTube sends scroll events about every 100 ms while its list moves. */
+    private fun isScrolling() = SystemClock.uptimeMillis() - lastScrollAt < SETTLE_MS - 30
+
+    /**
+     * Removed at once, not faded: YouTube reports a scroll ~100 ms after it starts, so a fading
+     * badge would be seen sliding off its thumbnail.
+     */
+    private fun hideBadges() = badges.forEach { detach(it) }
+
     private fun scan() {
+        if (isScrolling()) return
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() !in YouTubeWatcherService.YOUTUBE_PACKAGES ||
             !Settings.feedBadges(this)
@@ -121,7 +147,10 @@ class FeedBadgeService : AccessibilityService() {
             if (badge.attached) {
                 runCatching { wm.updateViewLayout(badge.view, badge.params) }
             } else {
+                detach(badge)
+                badge.view.alpha = 0f
                 badge.attached = runCatching { wm.addView(badge.view, badge.params) }.isSuccess
+                if (badge.attached) badge.view.animate().alpha(1f).setDuration(FADE_IN_MS).start()
             }
             used++
             if (used >= MAX_BADGES) break
@@ -361,6 +390,7 @@ class FeedBadgeService : AccessibilityService() {
     }
 
     private fun detach(b: Badge) {
+        b.view.animate().cancel()
         if (b.attached) runCatching { wm.removeView(b.view) }
         b.attached = false
     }
@@ -397,6 +427,9 @@ class FeedBadgeService : AccessibilityService() {
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
     companion object {
+        /** Quiet time after the last scroll event before the badges come back. */
+        private const val SETTLE_MS = 200L
+        private const val FADE_IN_MS = 160L
         private const val MAX_BADGES = 8
         private const val ASK_TIMEOUT_MS = 12_000L
     }
