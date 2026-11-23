@@ -51,9 +51,14 @@ class FeedBadgeService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
-        if (event.packageName?.toString() !in YouTubeWatcherService.YOUTUBE_PACKAGES) {
-            // Another app (or the launcher) is in front: hide everything.
-            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) hideAll()
+        val pkg = event.packageName?.toString()
+        if (pkg !in YouTubeWatcherService.YOUTUBE_PACKAGES) {
+            // Adding our own badges fires window events too: reacting to them would remove the
+            // badges just drawn, in a loop. For any other app, hide only if YouTube really left
+            // the front (not for the status bar, a toast or a keyboard).
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && pkg != packageName &&
+                rootInActiveWindow?.packageName?.toString() !in YouTubeWatcherService.YOUTUBE_PACKAGES
+            ) hideAll()
             return
         }
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) closeMenu()
@@ -82,6 +87,7 @@ class FeedBadgeService : AccessibilityService() {
 
         val screen = Rect().also { root.getBoundsInScreen(it) }
         val cards = mutableListOf<Card>()
+        listTop = screen.top
         val samples = mutableListOf<String>()
         collect(root, cards, samples, depth = 0, screen = screen)
         reportStatus(cards, samples, root)
@@ -93,7 +99,16 @@ class FeedBadgeService : AccessibilityService() {
             // Thumbnails are 16:9 and span the card width; the badge sits on its bottom-left.
             // If the described node is only the text row under the thumbnail, the thumbnail ends at its top.
             val thumbH = r.width() * 9 / 16
-            val thumbBottom = if (r.height() >= thumbH) r.top + thumbH else r.top
+            // Bounds are clipped to the screen: a card cut at the bottom is not "only the text row",
+            // and a card cut at the top has its thumbnail position unknown.
+            val cutBottom = r.bottom >= screen.bottom - 1
+            val cutTop = r.top <= listTop + 1
+            val thumbBottom = when {
+                r.height() >= thumbH && !cutTop -> r.top + thumbH
+                r.height() >= thumbH -> continue
+                video != null && !cutBottom -> r.top
+                else -> continue
+            }
             val x = r.left + margin
             val y = thumbBottom - margin - size
             if (y < screen.top + dp(90) || y + size > screen.bottom - dp(60)) continue // under the toolbars
@@ -139,6 +154,7 @@ class FeedBadgeService : AccessibilityService() {
             return // children of a card are parts of the same card
         }
         if (node.viewIdResourceName?.endsWith(":id/results") == true) {
+            listTop = r.top
             for (i in 0 until node.childCount) {
                 val child = node.getChild(i) ?: continue
                 val cr = Rect().also { child.getBoundsInScreen(it) }
@@ -156,6 +172,9 @@ class FeedBadgeService : AccessibilityService() {
         }
         for (i in 0 until node.childCount) node.getChild(i)?.let { collect(it, out, samples, depth + 1, screen) }
     }
+
+    /** Top edge of YouTube's video list on screen (below its toolbar), found during [collect]. */
+    private var listTop = 0
 
     private fun isSponsored(desc: String?) =
         desc != null && Regex("^(sponsored|sponsorizzat|annuncio|ad\\b)", RegexOption.IGNORE_CASE).containsMatchIn(desc.trim())
