@@ -161,7 +161,10 @@ class FeedBadgeService : AccessibilityService() {
                 val childDesc = (child.contentDescription ?: child.text)?.toString()
                 if (isSponsored(childDesc)) continue
                 val described = FeedItemParser.parse(childDesc, requireViews = false)
-                val shaped = cr.width() >= screen.width() * 0.8 && cr.height() >= cr.width() * 0.7
+                // Undescribed video cards are single bare views; shelves (Shorts, playlists…) of the
+                // same size have children (their title and items) and are searched inside instead.
+                val shaped = child.childCount == 0 &&
+                    cr.width() >= screen.width() * 0.8 && cr.height() >= cr.width() * 0.7
                 if ((described != null || shaped) && out.none { Rect.intersects(it.bounds, cr) }) {
                     out += Card(cr, described)
                 } else {

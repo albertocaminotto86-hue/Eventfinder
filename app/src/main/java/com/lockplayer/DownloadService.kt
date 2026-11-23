@@ -65,20 +65,43 @@ class DownloadService : Service() {
         try {
             val audio = YouTubeResolver.resolveDownload(pageUrl, Settings.downloadBestQuality(this))
             shownTitle = audio.title
-            val name = AudioDownloader.safeName(audio.title) + "." + audio.extension
-            val target = createTarget(name, audio)
-            var lastPct = -1
-            contentResolver.openOutputStream(target.uri)!!.use { out ->
-                AudioDownloader().download(audio.url, audio.contentLength, out) { done, total ->
+            // Android's Music collection refuses WebM: Opus is moved into an Ogg file instead.
+            val remux = Build.VERSION.SDK_INT >= 29 && audio.mimeType == "audio/webm"
+            val mime = if (remux) "audio/ogg" else audio.mimeType
+            val name = AudioDownloader.safeName(audio.title) + "." + (if (remux) "ogg" else audio.extension)
+            val target = createTarget(name, audio, mime)
+            try {
+                var lastPct = -1
+                val onProgress = { done: Long, total: Long ->
                     val pct = if (total > 0) (done * 100 / total).toInt() else 0
                     if (pct != lastPct) {
                         lastPct = pct
                         nm.notify(PROGRESS_ID, progress(audio.title, pct, total))
                     }
                 }
+                if (remux) {
+                    val tmp = File.createTempFile("download", ".webm", cacheDir)
+                    try {
+                        tmp.outputStream().use { out ->
+                            AudioDownloader().download(audio.url, audio.contentLength, out, onProgress)
+                        }
+                        contentResolver.openFileDescriptor(target.uri, "rw")!!.use { pfd ->
+                            OpusRemuxer.webmToOgg(tmp, pfd.fileDescriptor)
+                        }
+                    } finally {
+                        tmp.delete()
+                    }
+                } else {
+                    contentResolver.openOutputStream(target.uri)!!.use { out ->
+                        AudioDownloader().download(audio.url, audio.contentLength, out, onProgress)
+                    }
+                }
+            } catch (e: Exception) {
+                target.discard() // no half-written file left in Music/LockPlayer
+                throw e
             }
             target.publish()
-            nm.notify(nextId(), finished(audio.title, target.uri, audio.mimeType))
+            nm.notify(nextId(), finished(audio.title, target.uri, mime))
         } catch (e: Exception) {
             Log.w(TAG, "Download failed", e)
             nm.notify(nextId(), failed(shownTitle))
@@ -86,13 +109,13 @@ class DownloadService : Service() {
     }
 
     /** Where the file goes: MediaStore Music/LockPlayer on Android 10+, app music folder before. */
-    private inner class Target(val uri: Uri, val publish: () -> Unit)
+    private inner class Target(val uri: Uri, val publish: () -> Unit, val discard: () -> Unit)
 
-    private fun createTarget(name: String, audio: DownloadableAudio): Target {
+    private fun createTarget(name: String, audio: DownloadableAudio, mimeType: String): Target {
         if (Build.VERSION.SDK_INT >= 29) {
             val values = ContentValues().apply {
                 put(MediaStore.Audio.Media.DISPLAY_NAME, name)
-                put(MediaStore.Audio.Media.MIME_TYPE, audio.mimeType)
+                put(MediaStore.Audio.Media.MIME_TYPE, mimeType)
                 put(MediaStore.Audio.Media.TITLE, audio.title)
                 put(MediaStore.Audio.Media.ARTIST, audio.artist)
                 put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/LockPlayer")
@@ -100,13 +123,17 @@ class DownloadService : Service() {
             }
             val uri = contentResolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values)
                 ?: throw IllegalStateException("Impossibile creare il file")
-            return Target(uri) {
-                contentResolver.update(uri, ContentValues().apply { put(MediaStore.Audio.Media.IS_PENDING, 0) }, null, null)
-            }
+            return Target(
+                uri,
+                publish = {
+                    contentResolver.update(uri, ContentValues().apply { put(MediaStore.Audio.Media.IS_PENDING, 0) }, null, null)
+                },
+                discard = { runCatching { contentResolver.delete(uri, null, null) } },
+            )
         }
         val dir = File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "LockPlayer").apply { mkdirs() }
         val file = File(dir, name)
-        return Target(Uri.fromFile(file)) {}
+        return Target(Uri.fromFile(file), publish = {}, discard = { file.delete() })
     }
 
     private fun startInForeground(n: Notification) {
