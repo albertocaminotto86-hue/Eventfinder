@@ -25,6 +25,16 @@ data class ResolvedTrack(
     val source: Source,
 )
 
+/** A single audio file to save, picked for compatibility (m4a/AAC first). */
+data class DownloadableAudio(
+    val url: String,
+    val title: String,
+    val artist: String,
+    val mimeType: String,
+    val extension: String,
+    val contentLength: Long,
+)
+
 object YouTubeResolver {
 
     private val urlRegex = Regex("""https?://\S+""")
@@ -53,6 +63,30 @@ object YouTubeResolver {
             artworkUrl = info.thumbnails.maxByOrNull { it.width * it.height }?.url,
             durationSec = info.duration,
             source = pickSource(info),
+        )
+    }
+
+    /** Blocking: finds the best audio file to download for [url], preferring m4a (plays everywhere). */
+    fun resolveDownload(url: String): DownloadableAudio {
+        val info = runCatching { StreamInfo.getInfo(ServiceList.YouTube, url) }
+            .recoverCatching { Thread.sleep(800); StreamInfo.getInfo(ServiceList.YouTube, url) }
+            .getOrThrow()
+        val stream = info.audioStreams
+            .filter { it.isUrl && it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP && it.format != null }
+            .sortedWith(
+                compareByDescending<AudioStream> { it.audioTrackType == null || it.audioTrackType?.name == "ORIGINAL" }
+                    .thenByDescending { it.format?.suffix == "m4a" }
+                    .thenByDescending { it.averageBitrate }
+            )
+            .firstOrNull() ?: throw IllegalStateException("Nessun file audio scaricabile")
+        val format = stream.format!!
+        return DownloadableAudio(
+            url = stream.content,
+            title = info.name,
+            artist = info.uploaderName.orEmpty(),
+            mimeType = format.mimeType,
+            extension = format.suffix,
+            contentLength = stream.itagItem?.contentLength ?: -1,
         )
     }
 

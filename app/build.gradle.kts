@@ -11,8 +11,8 @@ android {
         applicationId = "com.lockplayer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.6.1"
+        versionCode = 9
+        versionName = "0.7.0"
     }
 
     // Personal-use key kept in the repo so every build can update the installed app.

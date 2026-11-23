@@ -175,6 +175,14 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/cd_next"
                 android:src="@drawable/ic_next" />
+            <ImageButton
+                android:id="@+id/download"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="16dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cd_download"
+                android:src="@drawable/ic_download" />
         </LinearLayout>
     </LinearLayout>
 

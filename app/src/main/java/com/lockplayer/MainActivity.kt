@@ -70,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         b.next.setOnClickListener { controller?.seekToNextMediaItem() }
         b.prev.setOnClickListener { controller?.seekToPrevious() }
         b.add.setOnClickListener { addFromField() }
+        b.download.setOnClickListener { downloadCurrent() }
         b.paste.setOnClickListener { pasteFromClipboard() }
         b.openYoutube.setOnClickListener { openYouTube() }
         b.offerSwitch.isChecked = Settings.offerOnYouTubePlay(this)
@@ -166,6 +167,13 @@ class MainActivity : AppCompatActivity() {
         if (Controller.playOrQueue(c, url)) {
             Toast.makeText(this, R.string.queued, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun downloadCurrent() {
+        val item = controller?.currentMediaItem ?: return
+        val track = TrackStore.get(item.mediaId) ?: return
+        DownloadService.start(this, track.pageUrl, track.title)
+        Toast.makeText(this, R.string.download_started, Toast.LENGTH_SHORT).show()
     }
 
     private fun pasteFromClipboard() {

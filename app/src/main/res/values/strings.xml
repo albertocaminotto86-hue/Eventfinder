@@ -69,4 +69,10 @@
     <string name="badge_status_title">Stato simbolo sui video</string>
     <string name="badge_status_off">Accessibilità NON attiva per LockPlayer: i simboli non possono comparire. Tocca «Configura permessi».</string>
     <string name="badge_status_never">Accessibilità attiva, ma il servizio non ha ancora letto YouTube. Apri YouTube; se resta così, spegni e riaccendi LockPlayer in Accessibilità.</string>
+    <string name="download_channel">Download</string>
+    <string name="download_progress">Scarico l\'audio…</string>
+    <string name="download_done">Audio salvato in Musica/LockPlayer</string>
+    <string name="download_failed">Download non riuscito</string>
+    <string name="download_started">Download avviato: lo trovi in Musica/LockPlayer</string>
+    <string name="cd_download">Scarica audio</string>
 </resources>
