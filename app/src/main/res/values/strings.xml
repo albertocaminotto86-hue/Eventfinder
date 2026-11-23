@@ -79,7 +79,7 @@
     <string name="download_format_m4a">Compatibile · .m4a</string>
     <string name="download_format_best">Migliore · Opus</string>
     <string name="download_format_hint_m4a">AAC ~128 kbps: si apre su qualsiasi lettore e autoradio.</string>
-    <string name="download_format_hint_best">Opus ~160 kbps (file .webm): qualità un po\' migliore, ma alcuni lettori vecchi e autoradio non lo aprono.</string>
+    <string name="download_format_hint_best">Opus ~160 kbps (file .ogg): qualità un po\' migliore, ma alcuni lettori vecchi e autoradio non lo aprono.</string>
     <string name="menu_play">Ascolta ora</string>
     <string name="menu_queue">Aggiungi alla coda</string>
     <string name="menu_download">Scarica audio</string>

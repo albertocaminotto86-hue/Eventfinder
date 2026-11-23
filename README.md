@@ -15,7 +15,12 @@ background.
 - **Coda**: se qualcosa sta già suonando, il nuovo brano viene messo in fila.
 - **Widget home** con titolo e ⏮ ⏯ ⏭.
 - Si mette in pausa quando scolleghi le cuffie.
-- **Bolla sui video di YouTube**: mentre un video suona nell'app YouTube (anche gli Shorts)
+- **Simbolo su ogni miniatura** nell'app YouTube (Home, Iscrizioni, ricerca, correlati): toccandolo
+  si apre un menù LockPlayer con **Ascolta ora**, **Aggiungi alla coda** e **Scarica audio**.
+  Non compare su Shorts, dirette e pubblicità. Serve l'Accessibilità e l'accesso alle notifiche.
+- **Scarica audio** in Musica/LockPlayer: formato *Compatibile* (.m4a AAC ~128 kbps) o *Migliore*
+  (.ogg Opus ~160 kbps), senza ricodifica.
+- **Bolla sui video di YouTube** (solo se il simbolo è spento): mentre un video suona nell'app YouTube (anche gli Shorts)
   compare una bolla rossa col lucchetto. Toccandola, YouTube va in pausa e il brano continua
   in LockPlayer dallo stesso secondo. Si trascina, si aggancia al bordo e ricorda la posizione.
   Senza il permesso «Mostra sopra altre app» al suo posto compare una notifica una tantum.
