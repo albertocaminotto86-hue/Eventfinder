@@ -71,6 +71,15 @@ class MainActivity : AppCompatActivity() {
         b.prev.setOnClickListener { controller?.seekToPrevious() }
         b.add.setOnClickListener { addFromField() }
         b.download.setOnClickListener { downloadCurrent() }
+        val best = Settings.downloadBestQuality(this)
+        b.formatGroup.check(if (best) R.id.formatBest else R.id.formatM4a)
+        b.formatHint.setText(if (best) R.string.download_format_hint_best else R.string.download_format_hint_m4a)
+        b.formatGroup.addOnButtonCheckedListener { _, id, checked ->
+            if (!checked) return@addOnButtonCheckedListener
+            val isBest = id == R.id.formatBest
+            Settings.setDownloadBestQuality(this, isBest)
+            b.formatHint.setText(if (isBest) R.string.download_format_hint_best else R.string.download_format_hint_m4a)
+        }
         b.paste.setOnClickListener { pasteFromClipboard() }
         b.openYoutube.setOnClickListener { openYouTube() }
         b.offerSwitch.isChecked = Settings.offerOnYouTubePlay(this)

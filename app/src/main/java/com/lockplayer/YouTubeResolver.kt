@@ -66,8 +66,11 @@ object YouTubeResolver {
         )
     }
 
-    /** Blocking: finds the best audio file to download for [url], preferring m4a (plays everywhere). */
-    fun resolveDownload(url: String): DownloadableAudio {
+    /**
+     * Blocking: finds the audio file to download for [url].
+     * @param bestQuality false = m4a/AAC (plays everywhere), true = highest bitrate (usually Opus).
+     */
+    fun resolveDownload(url: String, bestQuality: Boolean = false): DownloadableAudio {
         val info = runCatching { StreamInfo.getInfo(ServiceList.YouTube, url) }
             .recoverCatching { Thread.sleep(800); StreamInfo.getInfo(ServiceList.YouTube, url) }
             .getOrThrow()
@@ -75,7 +78,7 @@ object YouTubeResolver {
             .filter { it.isUrl && it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP && it.format != null }
             .sortedWith(
                 compareByDescending<AudioStream> { it.audioTrackType == null || it.audioTrackType?.name == "ORIGINAL" }
-                    .thenByDescending { it.format?.suffix == "m4a" }
+                    .thenByDescending { !bestQuality && it.format?.suffix == "m4a" }
                     .thenByDescending { it.averageBitrate }
             )
             .firstOrNull() ?: throw IllegalStateException("Nessun file audio scaricabile")

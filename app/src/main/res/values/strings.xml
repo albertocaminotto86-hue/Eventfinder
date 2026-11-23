@@ -75,4 +75,9 @@
     <string name="download_failed">Download non riuscito</string>
     <string name="download_started">Download avviato: lo trovi in Musica/LockPlayer</string>
     <string name="cd_download">Scarica audio</string>
+    <string name="download_format">Formato download</string>
+    <string name="download_format_m4a">Compatibile · .m4a</string>
+    <string name="download_format_best">Migliore · Opus</string>
+    <string name="download_format_hint_m4a">AAC ~128 kbps: si apre su qualsiasi lettore e autoradio.</string>
+    <string name="download_format_hint_best">Opus ~160 kbps (file .webm): qualità un po\' migliore, ma alcuni lettori vecchi e autoradio non lo aprono.</string>
 </resources>

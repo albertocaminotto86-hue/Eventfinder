@@ -6,6 +6,8 @@
         <item name="colorOnPrimaryContainer">#FFFFFF</item>
         <item name="colorSecondary">@color/brand_orange</item>
         <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">@color/accent</item>
+        <item name="colorOnSecondaryContainer">#FFFFFF</item>
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>

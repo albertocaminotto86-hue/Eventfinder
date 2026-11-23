@@ -63,7 +63,7 @@ class DownloadService : Service() {
     private fun run(pageUrl: String, fallbackTitle: String) {
         var shownTitle = fallbackTitle
         try {
-            val audio = YouTubeResolver.resolveDownload(pageUrl)
+            val audio = YouTubeResolver.resolveDownload(pageUrl, Settings.downloadBestQuality(this))
             shownTitle = audio.title
             val name = AudioDownloader.safeName(audio.title) + "." + audio.extension
             val target = createTarget(name, audio)

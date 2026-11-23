@@ -12,6 +12,7 @@ object Settings {
     private const val KEY_DUMP_REQ = "dump_requested"
     private const val KEY_DUMP = "dump"
     private const val KEY_BADGE_STATUS = "badge_status"
+    private const val KEY_DL_BEST = "download_best_quality"
 
     fun offerOnYouTubePlay(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_OFFER, true)
@@ -52,6 +53,13 @@ object Settings {
 
     fun lastDump(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DUMP, null)
+
+    /** Download format: false = compatible m4a, true = best quality (Opus). */
+    fun downloadBestQuality(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_DL_BEST, false)
+
+    fun setDownloadBestQuality(context: Context, value: Boolean) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_DL_BEST, value).apply()
 
     fun saveBadgeStatus(context: Context, status: String) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_BADGE_STATUS, status).apply()

@@ -65,3 +65,22 @@ class SetupScreenshotTest {
         capture("setup-3-done")
     }
 }
+
+/** Renders the main screen for visual review. Run with SCREENSHOTS=1. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [35], qualifiers = "w400dp-h860dp-xxhdpi", application = Application::class)
+class MainScreenshotTest {
+    @Test
+    fun mainScreen() {
+        assumeTrue(System.getenv("SCREENSHOTS") == "1")
+        // Skip onStart: it binds the playback service, which Robolectric cannot emulate.
+        val controller = Robolectric.buildActivity(MainActivity::class.java).create().visible()
+        org.robolectric.shadows.ShadowLooper.idleMainLooper()
+        val root = controller.get().window.decorView
+        val bmp = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(bmp))
+        val out = File("build/screenshots/main.png").apply { parentFile?.mkdirs() }
+        out.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+}
