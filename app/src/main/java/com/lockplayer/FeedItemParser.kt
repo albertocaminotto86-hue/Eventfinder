@@ -22,8 +22,8 @@ object FeedItemParser {
      */
     fun parse(description: String?, requireViews: Boolean = true): NowPlayingOnYouTube? {
         if (description.isNullOrBlank()) return null
-        // YouTube separates fields with " - ", " · " or ", " depending on version/language.
-        val parts = description.split(" - ", " · ", " • ").map { it.trim() }.filter { it.isNotEmpty() }
+        // YouTube separates fields with " - ", " – ", " · " … depending on version/language.
+        val parts = description.split(" - ", " – ", " — ", " · ", " • ").map { it.trim() }.filter { it.isNotEmpty() }
         val durIndex = parts.indexOfFirst { isDuration(it) }
         if (durIndex <= 0) return null
         if (requireViews && parts.none { views.containsMatchIn(it) }) return null

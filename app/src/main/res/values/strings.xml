@@ -42,7 +42,7 @@
     <string name="step_notif_body">Per mostrare i controlli sulla schermata di blocco e la proposta quando parte un video.</string>
     <string name="step_notif_button">Consenti notifiche</string>
     <string name="step_access_title">Accesso alle notifiche</string>
-    <string name="step_access_body">Serve per sapere quale video sta suonando YouTube. LockPlayer non legge i tuoi messaggi.</string>
+    <string name="step_access_body">Serve per riconoscere il video che apri dal simbolo (YouTube ne indica titolo e durata). LockPlayer non legge i tuoi messaggi.</string>
     <string name="step_access_button">Apri e attiva</string>
     <string name="step_access_help_title">L\'interruttore è grigio o dice «accesso negato»?</string>
     <string name="step_access_help_body">Android blocca questo permesso per le app installate da file. Tocca il pulsante qui sotto, poi ⋮ in alto a destra → «Consenti impostazioni con restrizioni». Torna qui e tocca di nuovo «Apri e attiva».</string>
@@ -59,7 +59,7 @@
     <string name="step_a11y_body">Mette il simbolo di LockPlayer su ogni video nella lista di YouTube. Si attiva da Accessibilità: LockPlayer guarda solo titoli e posizione dei video dentro YouTube.</string>
     <string name="step_a11y_button">Apri e attiva</string>
     <string name="step_a11y_help_title">Non riesci ad attivarlo?</string>
-    <string name="setup_bubble_section">FACOLTATIVO · BOLLA SUL VIDEO IN RIPRODUZIONE</string>
+    <string name="setup_bubble_section">FACOLTATIVO · BOLLA (SE SPEGNI IL SIMBOLO)</string>
     <string name="badges_switch">Simbolo LockPlayer sui video di YouTube</string>
     <string name="dump_button">Registra schermata YouTube</string>
     <string name="dump_hint">Apri YouTube sulla lista dei video: la registro e torno qui.</string>
@@ -83,4 +83,5 @@
     <string name="menu_play">Ascolta ora</string>
     <string name="menu_queue">Aggiungi alla coda</string>
     <string name="menu_download">Scarica audio</string>
+    <string name="need_notification_access">Per riconoscere il video serve l\'«accesso alle notifiche»: attivalo da Configura permessi.</string>
 </resources>

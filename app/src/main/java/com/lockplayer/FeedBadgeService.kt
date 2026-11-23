@@ -1,7 +1,12 @@
 package com.lockplayer
 
 import android.accessibilityservice.AccessibilityService
+import android.content.ComponentName
 import android.content.Intent
+import android.media.MediaMetadata
+import android.media.session.MediaSession
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
@@ -30,9 +35,14 @@ class FeedBadgeService : AccessibilityService() {
     private var scanPending = false
 
     private class Badge(val view: FrameLayout, val params: WindowManager.LayoutParams) {
+        /** Known when YouTube describes the card; null for cards found only by their shape. */
         var video: NowPlayingOnYouTube? = null
+        val card = Rect()
         var attached = false
     }
+
+    /** A card on screen: its bounds, and the video if YouTube described it. */
+    private data class Card(val bounds: Rect, val video: NowPlayingOnYouTube?)
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -71,9 +81,9 @@ class FeedBadgeService : AccessibilityService() {
         if (Settings.consumeDumpRequest(this)) Settings.saveDump(this, dump(root))
 
         val screen = Rect().also { root.getBoundsInScreen(it) }
-        val cards = mutableListOf<Pair<Rect, NowPlayingOnYouTube>>()
+        val cards = mutableListOf<Card>()
         val samples = mutableListOf<String>()
-        collect(root, cards, samples, depth = 0, screenWidth = screen.width())
+        collect(root, cards, samples, depth = 0, screen = screen)
         reportStatus(cards, samples, root)
 
         val size = dp(36)
@@ -90,6 +100,7 @@ class FeedBadgeService : AccessibilityService() {
             if (r.width() < dp(140)) continue
             val badge = badges.getOrNull(used) ?: newBadge().also { badges += it }
             badge.video = video
+            badge.card.set(r)
             badge.params.x = x
             badge.params.y = y
             if (badge.attached) {
@@ -103,34 +114,58 @@ class FeedBadgeService : AccessibilityService() {
         badges.drop(used).forEach { detach(it) }
     }
 
-    /** Finds nodes whose description looks like a YouTube video card. */
+    /**
+     * Finds video cards. Two ways, because YouTube's new feed often exposes nothing but a bare,
+     * undescribed view per card:
+     *  - by description, when YouTube gives one ("Title - 3 minutes - Channel - 1K views …");
+     *  - by shape: full-width, thumbnail-tall children of the "results" list.
+     */
     private fun collect(
         node: AccessibilityNodeInfo,
-        out: MutableList<Pair<Rect, NowPlayingOnYouTube>>,
+        out: MutableList<Card>,
         samples: MutableList<String>,
         depth: Int,
-        screenWidth: Int,
+        screen: Rect,
     ) {
         if (depth > 50) return
         val desc = (node.contentDescription ?: node.text)?.toString()
         if (desc != null && desc.length > 15 && samples.size < 6) samples += desc.take(140)
         val r = Rect().also { node.getBoundsInScreen(it) }
-        // Big, thumbnail-sized nodes are almost surely video cards: accept them even without a view count.
-        val big = r.width() > screenWidth * 0.6 && r.height() > r.width() * 0.4
+        if (isSponsored(desc)) return
+        val big = r.width() > screen.width() * 0.6 && r.height() > r.width() * 0.4
         val video = FeedItemParser.parse(desc) ?: if (big) FeedItemParser.parse(desc, requireViews = false) else null
         if (video != null && !r.isEmpty) {
-            if (out.none { it.first.contains(r) }) out += r to video
+            if (out.none { it.bounds.contains(r) }) out += Card(r, video)
             return // children of a card are parts of the same card
         }
-        for (i in 0 until node.childCount) node.getChild(i)?.let { collect(it, out, samples, depth + 1, screenWidth) }
+        if (node.viewIdResourceName?.endsWith(":id/results") == true) {
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                val cr = Rect().also { child.getBoundsInScreen(it) }
+                val childDesc = (child.contentDescription ?: child.text)?.toString()
+                if (isSponsored(childDesc)) continue
+                val described = FeedItemParser.parse(childDesc, requireViews = false)
+                val shaped = cr.width() >= screen.width() * 0.8 && cr.height() >= cr.width() * 0.7
+                if ((described != null || shaped) && out.none { Rect.intersects(it.bounds, cr) }) {
+                    out += Card(cr, described)
+                } else {
+                    collect(child, out, samples, depth + 1, screen)
+                }
+            }
+            return
+        }
+        for (i in 0 until node.childCount) node.getChild(i)?.let { collect(it, out, samples, depth + 1, screen) }
     }
+
+    private fun isSponsored(desc: String?) =
+        desc != null && Regex("^(sponsored|sponsorizzat|annuncio|ad\\b)", RegexOption.IGNORE_CASE).containsMatchIn(desc.trim())
 
     private var lastReport = 0L
     private var autoDumped = false
 
     /** Saves what the last scan saw, shown in the app; dumps the screen once if nothing matched. */
     private fun reportStatus(
-        cards: List<Pair<Rect, NowPlayingOnYouTube>>,
+        cards: List<Card>,
         samples: List<String>,
         root: AccessibilityNodeInfo,
     ) {
@@ -139,7 +174,9 @@ class FeedBadgeService : AccessibilityService() {
         lastReport = now
         val time = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ITALY).format(java.util.Date(now))
         val sb = StringBuilder("Ultima lettura di YouTube: $time\nVideo riconosciuti: ${cards.size}\n")
-        cards.take(2).forEach { sb.append("  ✓ ${it.second.title.take(60)} · ${it.second.durationSec}s\n") }
+        val described = cards.count { it.video != null }
+        sb.append("  (con titolo: $described, solo forma: ${cards.size - described})\n")
+        cards.mapNotNull { it.video }.take(2).forEach { sb.append("  ✓ ${it.title.take(60)} · ${it.durationSec}s\n") }
         if (cards.isEmpty()) {
             sb.append("Testi visti (esempi):\n")
             samples.forEach { sb.append("  · ").append(it).append('\n') }
@@ -169,7 +206,11 @@ class FeedBadgeService : AccessibilityService() {
             PixelFormat.TRANSLUCENT,
         ).apply { gravity = Gravity.TOP or Gravity.START }
         val badge = Badge(view, params)
-        view.setOnClickListener { badge.video?.let { showMenu(it, badge.params.x, badge.params.y) } }
+        view.setOnClickListener {
+            val video = badge.video
+            if (video != null) showMenu(video, null, badge.params.x, badge.params.y)
+            else openCardThenAsk(Rect(badge.card))
+        }
         return badge
     }
 
@@ -177,14 +218,14 @@ class FeedBadgeService : AccessibilityService() {
 
     /** Small LockPlayer menu next to the tapped badge: play now, add to queue, download. */
     @android.annotation.SuppressLint("InflateParams", "ClickableViewAccessibility")
-    private fun showMenu(video: NowPlayingOnYouTube, badgeX: Int, badgeY: Int) {
+    private fun showMenu(video: NowPlayingOnYouTube, token: MediaSession.Token?, badgeX: Int, badgeY: Int) {
         closeMenu()
         val themed = android.view.ContextThemeWrapper(this, R.style.Theme_LockPlayer)
         val view = android.view.LayoutInflater.from(themed).inflate(R.layout.overlay_menu, null)
         view.findViewById<android.widget.TextView>(R.id.menuTitle).text = video.title
-        view.findViewById<View>(R.id.menuPlay).setOnClickListener { closeMenu(); handoff(video, HandoffActivity.MODE_PLAY) }
-        view.findViewById<View>(R.id.menuQueue).setOnClickListener { closeMenu(); handoff(video, HandoffActivity.MODE_QUEUE) }
-        view.findViewById<View>(R.id.menuDownload).setOnClickListener { closeMenu(); handoff(video, HandoffActivity.MODE_DOWNLOAD) }
+        view.findViewById<View>(R.id.menuPlay).setOnClickListener { closeMenu(); handoff(video, token, HandoffActivity.MODE_PLAY) }
+        view.findViewById<View>(R.id.menuQueue).setOnClickListener { closeMenu(); handoff(video, null, HandoffActivity.MODE_QUEUE) }
+        view.findViewById<View>(R.id.menuDownload).setOnClickListener { closeMenu(); handoff(video, null, HandoffActivity.MODE_DOWNLOAD) }
         view.setOnTouchListener { _, e ->
             if (e.actionMasked == android.view.MotionEvent.ACTION_OUTSIDE) { closeMenu(); true } else false
         }
@@ -214,7 +255,7 @@ class FeedBadgeService : AccessibilityService() {
         menu = null
     }
 
-    private fun handoff(video: NowPlayingOnYouTube, mode: String) {
+    private fun handoff(video: NowPlayingOnYouTube, token: MediaSession.Token?, mode: String) {
         if (mode != HandoffActivity.MODE_QUEUE) hideAll()
         startActivity(
             Intent(this, HandoffActivity::class.java)
@@ -223,7 +264,78 @@ class FeedBadgeService : AccessibilityService() {
                 .putExtra(HandoffActivity.EXTRA_CHANNEL, video.channel)
                 .putExtra(HandoffActivity.EXTRA_DURATION, video.durationSec)
                 .putExtra(HandoffActivity.EXTRA_MODE, mode)
+                .apply { if (token != null) putExtra(HandoffActivity.EXTRA_TOKEN, token) }
         )
+    }
+
+    // ---- Cards YouTube doesn't describe: open the video, then read what started playing ----
+
+    private var askUntil = 0L
+
+    /**
+     * YouTube doesn't say which video an undescribed card is. So: tap the card for the user
+     * (YouTube opens the video), then read the title/channel/duration YouTube publishes in its
+     * media session (needs notification access) and show the LockPlayer menu for it.
+     */
+    private fun openCardThenAsk(card: Rect) {
+        hideAll()
+        if (!Settings.hasNotificationAccess(this)) {
+            android.widget.Toast.makeText(this, R.string.need_notification_access, android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+        if (!clickCardNode(card)) tapAt(card.centerX(), card.top + card.width() * 9 / 32)
+        askUntil = System.currentTimeMillis() + ASK_TIMEOUT_MS
+        // Give YouTube time to switch from the feed's muted preview to the opened video.
+        handler.postDelayed(::pollOpenedVideo, 1200)
+    }
+
+    private fun clickCardNode(card: Rect): Boolean {
+        val root = rootInActiveWindow ?: return false
+        fun find(n: AccessibilityNodeInfo, d: Int): AccessibilityNodeInfo? {
+            if (d > 50) return null
+            val r = Rect().also { n.getBoundsInScreen(it) }
+            if (r == card) return n
+            if (!Rect.intersects(r, card)) return null
+            for (i in 0 until n.childCount) n.getChild(i)?.let { c -> find(c, d + 1)?.let { return it } }
+            return null
+        }
+        var node = find(root, 0)
+        while (node != null && !node.isClickable) node = node.parent
+        return node?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
+    }
+
+    private fun tapAt(x: Int, y: Int) {
+        val path = android.graphics.Path().apply { moveTo(x.toFloat(), y.toFloat()) }
+        val stroke = android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 60)
+        dispatchGesture(android.accessibilityservice.GestureDescription.Builder().addStroke(stroke).build(), null, null)
+    }
+
+    private fun pollOpenedVideo() {
+        if (System.currentTimeMillis() > askUntil) {
+            android.widget.Toast.makeText(this, R.string.error_not_found, android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val controller = runCatching {
+            getSystemService(MediaSessionManager::class.java)
+                .getActiveSessions(ComponentName(this, YouTubeWatcherService::class.java))
+                .firstOrNull { it.packageName in YouTubeWatcherService.YOUTUBE_PACKAGES }
+        }.getOrNull()
+        val meta = controller?.metadata
+        val title = meta?.getString(MediaMetadata.METADATA_KEY_TITLE)
+        if (controller == null || title.isNullOrBlank() ||
+            controller.playbackState?.state != PlaybackState.STATE_PLAYING
+        ) {
+            handler.postDelayed(::pollOpenedVideo, 400)
+            return
+        }
+        val video = NowPlayingOnYouTube(
+            title,
+            meta.getString(MediaMetadata.METADATA_KEY_ARTIST).orEmpty(),
+            meta.getLong(MediaMetadata.METADATA_KEY_DURATION) / 1000,
+        )
+        val dm = resources.displayMetrics
+        // On the video page: show the menu low in the middle, under the player.
+        showMenu(video, controller.sessionToken, (dm.widthPixels - dp(260)) / 2, dm.heightPixels / 2)
     }
 
     private fun detach(b: Badge) {
@@ -264,5 +376,6 @@ class FeedBadgeService : AccessibilityService() {
 
     companion object {
         private const val MAX_BADGES = 8
+        private const val ASK_TIMEOUT_MS = 12_000L
     }
 }

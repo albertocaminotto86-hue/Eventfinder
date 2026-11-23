@@ -83,8 +83,12 @@ object Permissions {
 
     fun accessibilityFallback() = Intent(SystemSettings.ACTION_ACCESSIBILITY_SETTINGS)
 
-    /** Needed for the badges on YouTube thumbnails; the rest is optional. */
-    fun setupComplete(c: Context) = notificationsGranted(c) && accessibilityGranted(c)
+    /**
+     * Needed for the badges on YouTube thumbnails: accessibility draws them, notification access
+     * tells which video was opened from an undescribed card. The rest is optional.
+     */
+    fun setupComplete(c: Context) =
+        notificationsGranted(c) && accessibilityGranted(c) && notificationAccessGranted(c)
 
     private fun packageUri(c: Context) = Uri.fromParts("package", c.packageName, null)
 }

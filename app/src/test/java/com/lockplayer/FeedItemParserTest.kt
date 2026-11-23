@@ -53,4 +53,11 @@ class FeedItemParserTest {
         assertNull(FeedItemParser.parse("Titolo - 3 minutes"))
         assertEquals("Titolo", FeedItemParser.parse("Titolo - 3 minutes", requireViews = false)?.title)
     }
+
+    @Test
+    fun parsesEnDashSeparators() {
+        val v = FeedItemParser.parse("Titolo – 15 seconds – Canale – 3K views – 1 day ago")!!
+        assertEquals("Titolo", v.title)
+        assertEquals(15L, v.durationSec)
+    }
 }

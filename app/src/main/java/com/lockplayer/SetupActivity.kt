@@ -44,14 +44,14 @@ class SetupActivity : AppCompatActivity() {
             open(Permissions.accessibilityIntent(this), Permissions.accessibilityFallback())
         }
         b.stepA11y.secondary.setOnClickListener { open(Permissions.appInfoIntent(this)) }
-        b.stepAccess.setup(4, R.string.step_access_title, R.string.step_access_body, R.string.step_access_button) {
+        b.stepAccess.setup(3, R.string.step_access_title, R.string.step_access_body, R.string.step_access_button) {
             open(Permissions.notificationAccessIntent(this), Permissions.notificationAccessFallback())
         }
         b.stepAccess.secondary.setOnClickListener { open(Permissions.appInfoIntent(this)) }
         b.stepOverlay.setup(5, R.string.step_overlay_title, R.string.step_overlay_body, R.string.step_overlay_button) {
             open(Permissions.overlayIntent(this))
         }
-        b.stepBattery.setup(3, R.string.step_battery_title, R.string.step_battery_body, R.string.step_battery_button) {
+        b.stepBattery.setup(4, R.string.step_battery_title, R.string.step_battery_body, R.string.step_battery_button) {
             open(Permissions.batteryIntent(this), Permissions.batteryFallback())
         }
 
@@ -82,11 +82,11 @@ class SetupActivity : AppCompatActivity() {
         b.stepA11y.helpBox.visibility = if (!a11y && blocked) View.VISIBLE else View.GONE
         b.stepAccess.helpBox.visibility = if (!access && blocked) View.VISIBLE else View.GONE
 
-        val required = listOf(notif, a11y).count { it }
-        b.progress.text = getString(R.string.setup_progress, required, 2)
-        b.progressBar.max = 2
+        val required = listOf(notif, a11y, access).count { it }
+        b.progress.text = getString(R.string.setup_progress, required, 3)
+        b.progressBar.max = 3
         b.progressBar.progress = required
-        val complete = required == 2
+        val complete = required == 3
         b.done.visibility = if (complete) View.VISIBLE else View.GONE
         b.skip.visibility = if (complete) View.GONE else View.VISIBLE
         b.subtitle.setText(if (complete) R.string.setup_subtitle_done else R.string.setup_subtitle)
