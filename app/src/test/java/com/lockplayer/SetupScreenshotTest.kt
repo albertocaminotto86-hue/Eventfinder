@@ -84,3 +84,33 @@ class MainScreenshotTest {
         out.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 }
+
+/** Renders the badge menu shown over YouTube thumbnails. Run with SCREENSHOTS=1. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [35], qualifiers = "w400dp-h860dp-xxhdpi", application = Application::class)
+class MenuScreenshotTest {
+    @Test
+    fun badgeMenu() {
+        assumeTrue(System.getenv("SCREENSHOTS") == "1")
+        val ctx = android.view.ContextThemeWrapper(
+            ApplicationProvider.getApplicationContext(), R.style.Theme_LockPlayer
+        )
+        val v = android.view.LayoutInflater.from(ctx).inflate(R.layout.overlay_menu, null)
+        v.findViewById<android.widget.TextView>(R.id.menuTitle).text =
+            "Ricardo Villalobos - Live from Circoloco DC-10 Ibiza (20.07.26 Garden)"
+        val w = (260 * ctx.resources.displayMetrics.density).toInt()
+        v.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(w, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
+        )
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        val bmp = Bitmap.createBitmap(v.measuredWidth + 80, v.measuredHeight + 80, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawColor(0xFF5A3A2A.toInt()) // stand-in for a thumbnail behind the menu
+        c.translate(40f, 40f)
+        v.draw(c)
+        val out = File("build/screenshots/menu.png").apply { parentFile?.mkdirs() }
+        out.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+}

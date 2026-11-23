@@ -46,6 +46,7 @@ class FeedBadgeService : AccessibilityService() {
             if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) hideAll()
             return
         }
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) closeMenu()
         // Coalesce bursts of scroll/content events into one scan per frame or so.
         if (!scanPending) {
             scanPending = true
@@ -168,18 +169,60 @@ class FeedBadgeService : AccessibilityService() {
             PixelFormat.TRANSLUCENT,
         ).apply { gravity = Gravity.TOP or Gravity.START }
         val badge = Badge(view, params)
-        view.setOnClickListener { badge.video?.let(::play) }
+        view.setOnClickListener { badge.video?.let { showMenu(it, badge.params.x, badge.params.y) } }
         return badge
     }
 
-    private fun play(video: NowPlayingOnYouTube) {
-        hideAll()
+    private var menu: View? = null
+
+    /** Small LockPlayer menu next to the tapped badge: play now, add to queue, download. */
+    @android.annotation.SuppressLint("InflateParams", "ClickableViewAccessibility")
+    private fun showMenu(video: NowPlayingOnYouTube, badgeX: Int, badgeY: Int) {
+        closeMenu()
+        val themed = android.view.ContextThemeWrapper(this, R.style.Theme_LockPlayer)
+        val view = android.view.LayoutInflater.from(themed).inflate(R.layout.overlay_menu, null)
+        view.findViewById<android.widget.TextView>(R.id.menuTitle).text = video.title
+        view.findViewById<View>(R.id.menuPlay).setOnClickListener { closeMenu(); handoff(video, HandoffActivity.MODE_PLAY) }
+        view.findViewById<View>(R.id.menuQueue).setOnClickListener { closeMenu(); handoff(video, HandoffActivity.MODE_QUEUE) }
+        view.findViewById<View>(R.id.menuDownload).setOnClickListener { closeMenu(); handoff(video, HandoffActivity.MODE_DOWNLOAD) }
+        view.setOnTouchListener { _, e ->
+            if (e.actionMasked == android.view.MotionEvent.ACTION_OUTSIDE) { closeMenu(); true } else false
+        }
+
+        val screen = resources.displayMetrics
+        val width = dp(260)
+        val height = dp(230)
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = badgeX.coerceAtMost(screen.widthPixels - width - dp(8))
+            // Open above the badge when there's room, otherwise below it.
+            y = if (badgeY - height - dp(8) > dp(80)) badgeY - height - dp(8) else badgeY + dp(44)
+        }
+        if (runCatching { wm.addView(view, params) }.isSuccess) menu = view
+    }
+
+    private fun closeMenu() {
+        menu?.let { runCatching { wm.removeView(it) } }
+        menu = null
+    }
+
+    private fun handoff(video: NowPlayingOnYouTube, mode: String) {
+        if (mode != HandoffActivity.MODE_QUEUE) hideAll()
         startActivity(
             Intent(this, HandoffActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .putExtra(HandoffActivity.EXTRA_TITLE, video.title)
                 .putExtra(HandoffActivity.EXTRA_CHANNEL, video.channel)
                 .putExtra(HandoffActivity.EXTRA_DURATION, video.durationSec)
+                .putExtra(HandoffActivity.EXTRA_MODE, mode)
         )
     }
 
@@ -188,7 +231,10 @@ class FeedBadgeService : AccessibilityService() {
         b.attached = false
     }
 
-    private fun hideAll() = badges.forEach { detach(it) }
+    private fun hideAll() {
+        closeMenu()
+        badges.forEach { detach(it) }
+    }
 
     /** Text dump of the YouTube screen structure, for troubleshooting badge placement. */
     private fun dump(root: AccessibilityNodeInfo): String {

@@ -48,8 +48,14 @@ class HandoffActivity : DeliverActivity() {
                 if (url == null) {
                     toast(R.string.error_not_found, long = true)
                     finish()
-                } else {
-                    deliver(url, startMs, playNow = true)
+                } else when (intent.getStringExtra(EXTRA_MODE) ?: MODE_PLAY) {
+                    MODE_QUEUE -> deliver(url, startMs, playNow = false)
+                    MODE_DOWNLOAD -> {
+                        DownloadService.start(this, url, video.title)
+                        toast(R.string.download_started)
+                        finish()
+                    }
+                    else -> deliver(url, startMs, playNow = true)
                 }
             }
         }
@@ -72,5 +78,9 @@ class HandoffActivity : DeliverActivity() {
         const val EXTRA_CHANNEL = "channel"
         const val EXTRA_DURATION = "duration"
         const val EXTRA_TOKEN = "token"
+        const val EXTRA_MODE = "mode"
+        const val MODE_PLAY = "play"
+        const val MODE_QUEUE = "queue"
+        const val MODE_DOWNLOAD = "download"
     }
 }
