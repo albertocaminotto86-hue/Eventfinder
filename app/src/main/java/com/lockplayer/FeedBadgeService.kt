@@ -43,7 +43,7 @@ class FeedBadgeService : AccessibilityService() {
     }
 
     /** A card on screen: its bounds, and the video if YouTube described it. */
-    private data class Card(val bounds: Rect, val video: NowPlayingOnYouTube?)
+    private data class Card(val bounds: Rect, val video: NowPlayingOnYouTube?, val thumb: Rect? = null)
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -121,21 +121,26 @@ class FeedBadgeService : AccessibilityService() {
         val size = dp(36)
         val margin = dp(8)
         var used = 0
-        for ((r, video) in cards) {
-            // Thumbnails are 16:9 and span the card width; the badge sits on its bottom-left.
-            // If the described node is only the text row under the thumbnail, the thumbnail ends at its top.
-            val thumbH = r.width() * 9 / 16
-            // Bounds are clipped to the screen: a card cut at the bottom is not "only the text row",
-            // and a card cut at the top has its thumbnail position unknown.
+        for ((r, video, thumb) in cards) {
+            // Bounds are clipped to the screen: a card cut at the top or bottom may have its
+            // thumbnail off-screen, so its badge position is unknown.
             val cutBottom = r.bottom >= screen.bottom - 1
             val cutTop = r.top <= listTop + 1
-            val thumbBottom = when {
-                r.height() >= thumbH && !cutTop -> r.top + thumbH
-                r.height() >= thumbH -> continue
-                video != null && !cutBottom -> r.top
+            val thumbH = r.width() * 9 / 16
+            // Where the badge goes: bottom-left corner of this card's own thumbnail.
+            val corner: Pair<Int, Int> = when {
+                // YouTube exposed the thumbnail itself: use it.
+                thumb != null && thumb.bottom < screen.bottom - 1 && thumb.top > listTop + 1 ->
+                    thumb.left to thumb.bottom
+                // Big card: full-width 16:9 thumbnail on top (Home, search, related).
+                r.height() >= thumbH -> if (cutTop) continue else r.left to r.top + thumbH
+                // Compact row: small thumbnail on the left, title on the right (channel
+                // "Videos" tab, playlists). The thumbnail fills the row's height.
+                r.height() <= r.width() * 0.45 -> if (cutBottom || cutTop) continue else r.left to r.bottom
                 else -> continue
             }
-            val x = r.left + margin
+            val thumbBottom = corner.second
+            val x = corner.first + margin
             val y = thumbBottom - margin - size
             if (y < screen.top + dp(90) || y + size > screen.bottom - dp(60)) continue // under the toolbars
             if (r.width() < dp(140)) continue
@@ -179,7 +184,7 @@ class FeedBadgeService : AccessibilityService() {
         val big = r.width() > screen.width() * 0.6 && r.height() > r.width() * 0.4
         val video = FeedItemParser.parse(desc) ?: if (big) FeedItemParser.parse(desc, requireViews = false) else null
         if (video != null && !r.isEmpty) {
-            if (out.none { it.bounds.contains(r) }) out += Card(r, video)
+            if (out.none { it.bounds.contains(r) }) out += Card(r, video, findThumbnail(node, r))
             return // children of a card are parts of the same card
         }
         if (node.viewIdResourceName?.endsWith(":id/results") == true) {
@@ -195,7 +200,7 @@ class FeedBadgeService : AccessibilityService() {
                 val shaped = child.childCount == 0 &&
                     cr.width() >= screen.width() * 0.8 && cr.height() >= cr.width() * 0.7
                 if ((described != null || shaped) && out.none { Rect.intersects(it.bounds, cr) }) {
-                    out += Card(cr, described)
+                    out += Card(cr, described, findThumbnail(child, cr))
                 } else {
                     collect(child, out, samples, depth + 1, screen)
                 }
@@ -207,6 +212,28 @@ class FeedBadgeService : AccessibilityService() {
 
     /** Top edge of YouTube's video list on screen (below its toolbar), found during [collect]. */
     private var listTop = 0
+
+    /**
+     * Finds the card's thumbnail when YouTube exposes it as its own view: the largest
+     * descendant shaped like a 16:9 picture, at least a quarter of the card wide.
+     */
+    private fun findThumbnail(card: AccessibilityNodeInfo, cardBounds: Rect): Rect? {
+        var best: Rect? = null
+        fun walk(n: AccessibilityNodeInfo, d: Int) {
+            if (d > 12) return
+            for (i in 0 until n.childCount) {
+                val c = n.getChild(i) ?: continue
+                val r = Rect().also { c.getBoundsInScreen(it) }
+                val ratio = if (r.height() > 0) r.width().toFloat() / r.height() else 0f
+                if (ratio in 1.55f..1.95f && r.width() >= cardBounds.width() / 4 &&
+                    r.width() < cardBounds.width() * 0.98f && (best == null || r.width() > best!!.width())
+                ) best = r
+                walk(c, d + 1)
+            }
+        }
+        walk(card, 0)
+        return best
+    }
 
     private fun isSponsored(desc: String?) =
         desc != null && Regex("^(sponsored|sponsorizzat|annuncio|ad\\b)", RegexOption.IGNORE_CASE).containsMatchIn(desc.trim())
@@ -334,7 +361,11 @@ class FeedBadgeService : AccessibilityService() {
             android.widget.Toast.makeText(this, R.string.need_notification_access, android.widget.Toast.LENGTH_LONG).show()
             return
         }
-        if (!clickCardNode(card)) tapAt(card.centerX(), card.top + card.width() * 9 / 32)
+        if (!clickCardNode(card)) {
+            // Tap the thumbnail: middle of a big card's 16:9 picture, or the middle of a compact row.
+            val y = if (card.height() >= card.width() * 9 / 16) card.top + card.width() * 9 / 32 else card.centerY()
+            tapAt(card.centerX(), y)
+        }
         askUntil = System.currentTimeMillis() + ASK_TIMEOUT_MS
         // Give YouTube time to switch from the feed's muted preview to the opened video.
         handler.postDelayed(::pollOpenedVideo, 1200)
